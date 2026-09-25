@@ -57,15 +57,21 @@ class GoogleCalendarColorClient:
 
     def _resolve_calendar_id(self, target: str) -> str:
         """Resolve entity_id (e.g. calendar.work) to a Google calendar ID if possible."""
-        if "@" in target:
-            return target
-
         if target.startswith("calendar."):
             registry = er.async_get(self.hass)
             entry = registry.async_get(target)
             if entry and entry.unique_id:
-                # In official Google integration, unique_id is often the calendar ID
-                return entry.unique_id
+                uid = entry.unique_id
+                # In official Google integration, unique_id is formatted as:
+                # {google_account_email}-{calendar_id}
+                if "-" in uid:
+                    parts = uid.split("-", 1)
+                    if "@" in parts[0] or any(
+                        g_ent.title == parts[0]
+                        for g_ent in self.hass.config_entries.async_entries("google")
+                    ):
+                        return parts[1]
+                return uid
 
             state = self.hass.states.get(target)
             if state and "calendar_id" in state.attributes:
@@ -147,36 +153,45 @@ class GoogleCalendarColorClient:
     async def _fetch_from_ha_calendar(
         self, entity_id: str, start_time: str, end_time: str
     ) -> list[dict[str, Any]]:
-        """Fallback to querying the HA calendar entity via internal calendar component."""
+        """Fallback to querying the HA calendar entity via service call."""
         if not entity_id.startswith("calendar."):
             _LOGGER.debug("Cannot query non-calendar entity %s via HA calendar component", entity_id)
             return []
 
         try:
-            from homeassistant.components.calendar import async_get_events
-            from datetime import datetime
-            import zoneinfo
+            response = await self.hass.services.async_call(
+                "calendar",
+                "get_events",
+                {
+                    "entity_id": entity_id,
+                    "start_date_time": start_time,
+                    "end_date_time": end_time,
+                },
+                blocking=True,
+                return_response=True,
+            )
 
-            start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+            raw_events = []
+            if isinstance(response, dict):
+                if entity_id in response:
+                    raw_events = response[entity_id].get("events", [])
+                elif "events" in response:
+                    raw_events = response["events"]
 
-            calendar_events = await async_get_events(self.hass, entity_id, start_dt, end_dt)
             results = []
-            for ev in calendar_events:
-                ev_dict = ev.as_dict() if hasattr(ev, "as_dict") else dict(ev)
-                start_val = ev_dict.get("start")
-                end_val = ev_dict.get("end")
+            for ev in raw_events:
+                start_val = ev.get("start")
+                end_val = ev.get("end")
 
-                # Format start/end
-                start_obj = {"dateTime": start_val.isoformat()} if hasattr(start_val, "isoformat") else {"dateTime": str(start_val)}
-                end_obj = {"dateTime": end_val.isoformat()} if hasattr(end_val, "isoformat") else {"dateTime": str(end_val)}
+                start_obj = {"dateTime": start_val} if "T" in str(start_val) else {"date": str(start_val)}
+                end_obj = {"dateTime": end_val} if "T" in str(end_val) else {"date": str(end_val)}
 
                 results.append(
                     {
-                        "id": ev_dict.get("uid") or ev_dict.get("id"),
-                        "summary": ev_dict.get("summary", ""),
-                        "description": ev_dict.get("description", ""),
-                        "location": ev_dict.get("location", ""),
+                        "id": ev.get("uid") or ev.get("id"),
+                        "summary": ev.get("summary", ""),
+                        "description": ev.get("description", ""),
+                        "location": ev.get("location", ""),
                         "start": start_obj,
                         "end": end_obj,
                         "colorId": None,

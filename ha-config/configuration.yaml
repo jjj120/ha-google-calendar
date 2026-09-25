@@ -1,14 +1,16 @@
 # Loads default set of integrations. Do not remove.
 default_config:
 
-# Lovelace configuration in YAML mode
+# Lovelace configuration: storage mode allows full GUI editing and saving
 lovelace:
-  mode: yaml
-  resources:
-    - url: /google_calendar_card/google-calendar-card.js?v=1.0.1
-      type: module
-    - url: /local/google-calendar-card.js?v=1.0.1
-      type: module
+  mode: storage
+  dashboards:
+    calendar-demo:
+      mode: yaml
+      title: Google Calendar Demo
+      icon: mdi:calendar
+      show_in_sidebar: true
+      filename: ui-lovelace.yaml
 
 # Google Calendar Card Helper integration (automatically registers card via add_extra_js_url)
 google_calendar_card:
