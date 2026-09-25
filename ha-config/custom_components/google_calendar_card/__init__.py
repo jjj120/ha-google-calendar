@@ -7,11 +7,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import logging
+import os
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import config_validation as cv
@@ -21,6 +24,10 @@ from .api import GoogleCalendarColorClient
 from .const import DOMAIN, SERVICE_GET_EVENTS, WS_TYPE_GET_EVENTS
 
 _LOGGER = logging.getLogger(__name__)
+
+CARD_URL = "/google_calendar_card/google-calendar-card.js"
+CARD_DIR = os.path.join(os.path.dirname(__file__), "frontend")
+CARD_PATH = os.path.join(CARD_DIR, "google-calendar-card.js")
 
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 
@@ -99,6 +106,37 @@ def _register_api_endpoints(hass: HomeAssistant, client: GoogleCalendarColorClie
     hass.data[f"{DOMAIN}_registered"] = True
 
 
+async def _register_card(hass: HomeAssistant) -> None:
+    """Register card bundle as a static path and add extra JS URL."""
+    if hass.data.get(f"{DOMAIN}_card_registered"):
+        return
+
+    card_file = CARD_PATH
+    if not os.path.exists(card_file):
+        www_file = hass.config.path("www", "google-calendar-card.js")
+        if os.path.exists(www_file):
+            card_file = www_file
+
+    if os.path.exists(card_file):
+        try:
+            await hass.http.async_register_static_paths([
+                StaticPathConfig(
+                    url_path=CARD_URL,
+                    path=card_file,
+                    cache_headers=False,
+                )
+            ])
+            add_extra_js_url(hass, CARD_URL)
+            hass.data[f"{DOMAIN}_card_registered"] = True
+            _LOGGER.info("Registered Google Calendar Card frontend resource at %s", CARD_URL)
+        except Exception as err:
+            _LOGGER.warning("Could not register static path for Google Calendar Card: %s", err)
+            try:
+                add_extra_js_url(hass, CARD_URL)
+            except Exception:
+                pass
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Google Calendar Card Helper component from YAML."""
     if DOMAIN not in hass.data:
@@ -107,6 +145,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     client = GoogleCalendarColorClient(hass)
     hass.data[DOMAIN]["client"] = client
     _register_api_endpoints(hass, client)
+    await _register_card(hass)
 
     _LOGGER.info("Google Calendar Card Helper initialized successfully via YAML")
     return True
@@ -124,6 +163,7 @@ async def async_setup_entry(
     hass.data[DOMAIN]["client"] = client
 
     _register_api_endpoints(hass, client)
+    await _register_card(hass)
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
     _LOGGER.info("Google Calendar Card Helper initialized successfully via UI")

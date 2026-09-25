@@ -99,7 +99,22 @@ if (!window.customCards.some(c => c.type === "google-calendar-card")) {
   fs.writeFileSync(distFile, bundleContent, "utf-8");
   console.log(`Bundle created successfully: ${distFile} (${(bundleContent.length / 1024).toFixed(1)} KB)`);
 
-  // Also copy to ha-config/www if directory exists
+  // Also copy to custom_components/google_calendar_card/frontend
+  const ccFrontendDir = path.join(rootDir, "custom_components", "google_calendar_card", "frontend");
+  if (!fs.existsSync(ccFrontendDir)) {
+    fs.mkdirSync(ccFrontendDir, { recursive: true });
+  }
+  fs.copyFileSync(distFile, path.join(ccFrontendDir, "google-calendar-card.js"));
+  console.log(`Synced bundle to custom_components/google_calendar_card/frontend/google-calendar-card.js`);
+
+  // Also copy to ha-config if directories exist
+  const haCcFrontendDir = path.join(rootDir, "ha-config", "custom_components", "google_calendar_card", "frontend");
+  if (fs.existsSync(path.dirname(haCcFrontendDir))) {
+    fs.mkdirSync(haCcFrontendDir, { recursive: true });
+    fs.copyFileSync(distFile, path.join(haCcFrontendDir, "google-calendar-card.js"));
+    console.log(`Synced bundle to ha-config/custom_components/.../frontend/google-calendar-card.js`);
+  }
+
   const haWwwDir = path.join(rootDir, "ha-config", "www");
   if (fs.existsSync(haWwwDir)) {
     fs.copyFileSync(distFile, path.join(haWwwDir, "google-calendar-card.js"));

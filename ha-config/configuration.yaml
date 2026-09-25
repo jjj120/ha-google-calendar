@@ -5,8 +5,10 @@ default_config:
 lovelace:
   mode: yaml
   resources:
+    - url: /google_calendar_card/google-calendar-card.js
+      type: module
     - url: /local/google-calendar-card.js
       type: module
 
-# Google Calendar Card Helper integration
+# Google Calendar Card Helper integration (serves and registers the card automatically)
 google_calendar_card:
