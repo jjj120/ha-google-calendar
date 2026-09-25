@@ -1,0 +1,12 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Lovelace configuration in YAML mode
+lovelace:
+  mode: yaml
+  resources:
+    - url: /local/google-calendar-card.js
+      type: module
+
+# Google Calendar Card Helper integration
+google_calendar_card:

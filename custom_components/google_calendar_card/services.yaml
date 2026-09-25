@@ -1,0 +1,31 @@
+get_events:
+  name: Get Events with Colors
+  description: Fetches calendar events from Google Calendar including colorId per-event metadata.
+  fields:
+    entity_id:
+      name: Calendar Entity
+      description: The Home Assistant calendar entity ID (e.g. calendar.personal).
+      example: calendar.personal
+      selector:
+        entity:
+          domain: calendar
+    calendar_id:
+      name: Google Calendar ID
+      description: The raw Google Calendar ID or email address if entity_id is not specified.
+      example: your_calendar@group.calendar.google.com
+      selector:
+        text:
+    start:
+      name: Start Time
+      description: RFC3339 or ISO 8601 start timestamp.
+      required: true
+      example: "2026-09-01T00:00:00Z"
+      selector:
+        datetime:
+    end:
+      name: End Time
+      description: RFC3339 or ISO 8601 end timestamp.
+      required: true
+      example: "2026-09-30T23:59:59Z"
+      selector:
+        datetime:

@@ -1,0 +1,23 @@
+{
+  "name": "ha-google-calendar",
+  "version": "1.0.0",
+  "description": "Home Assistant Lovelace card for Google Calendar with per-event colorId support and multi-view layout",
+  "type": "module",
+  "main": "dist/google-calendar-card.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test tests/*.test.js",
+    "ha": "./scripts/run-ha.sh",
+    "ha:logs": "docker-compose logs -f",
+    "ha:stop": "docker-compose down"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "custom-card",
+    "google-calendar",
+    "colorId"
+  ],
+  "author": "Jonas",
+  "license": "MIT"
+}

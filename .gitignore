@@ -1,0 +1,30 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Home Assistant local test runtime
+ha-config/.storage/
+ha-config/.cache/
+ha-config/*.log
+ha-config/*.log.*
+ha-config/*.db
+ha-config/.ha_run.lock
+ha-config/.HA_VERSION
+ha-config/custom_components/**/__pycache__/
+
+# OS & Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

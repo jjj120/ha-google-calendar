@@ -1,0 +1,58 @@
+title: Google Calendar Card Demo
+
+views:
+  - title: Agenda
+    path: agenda
+    icon: mdi:calendar-month-outline
+    cards:
+      - type: custom:google-calendar-card
+        title: Google Calendar - Agenda View
+        default_view: agenda
+        color_style: pill
+        days_to_show: 14
+        show_all_day: true
+        show_location: true
+        show_description: true
+
+  - title: Month Grid
+    path: month
+    icon: mdi:calendar-grid
+    cards:
+      - type: custom:google-calendar-card
+        title: Google Calendar - Month View
+        default_view: month
+        color_style: pill
+        show_header: true
+
+  - title: Week & Day
+    path: week-day
+    icon: mdi:calendar-week
+    cards:
+      - type: custom:google-calendar-card
+        title: Google Calendar - Week View
+        default_view: week
+        color_style: border
+      - type: custom:google-calendar-card
+        title: Google Calendar - Day Timeline
+        default_view: day
+        color_style: full
+
+  - title: Color Styles
+    path: styles
+    icon: mdi:palette
+    cards:
+      - type: custom:google-calendar-card
+        title: Pill Badges (Default)
+        default_view: agenda
+        color_style: pill
+        days_to_show: 7
+      - type: custom:google-calendar-card
+        title: Accent Left Border
+        default_view: agenda
+        color_style: border
+        days_to_show: 7
+      - type: custom:google-calendar-card
+        title: Full Tinted Background
+        default_view: agenda
+        color_style: full
+        days_to_show: 7

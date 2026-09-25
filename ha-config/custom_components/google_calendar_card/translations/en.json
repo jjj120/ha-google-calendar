@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Google Calendar Card Helper",
+        "description": "This integration enables the Google Calendar Card to display individual event colors using Google's colorId parameter.\n\n{status}"
+      }
+    },
+    "abort": {
+      "already_configured": "Google Calendar Card Helper is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Google Calendar Card Options",
+        "data": {
+          "cache_duration_hours": "Color Palette Cache Duration (Hours)",
+          "default_color": "Default Fallback Event Color (Hex)"
+        }
+      }
+    }
+  }
+}

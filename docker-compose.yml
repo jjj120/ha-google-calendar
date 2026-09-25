@@ -1,0 +1,11 @@
+services:
+  homeassistant:
+    container_name: ha-google-calendar-dev
+    image: ghcr.io/home-assistant/home-assistant:stable
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./ha-config:/config:z
+    environment:
+      - TZ=UTC
+    restart: unless-stopped
