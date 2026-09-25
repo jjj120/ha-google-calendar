@@ -7,6 +7,9 @@ views:
     cards:
       - type: custom:google-calendar-card
         title: Google Calendar - Agenda View
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: agenda
         color_style: pill
         days_to_show: 14
@@ -20,6 +23,9 @@ views:
     cards:
       - type: custom:google-calendar-card
         title: Google Calendar - Month View
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: month
         color_style: pill
         show_header: true
@@ -30,10 +36,16 @@ views:
     cards:
       - type: custom:google-calendar-card
         title: Google Calendar - Week View
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: week
         color_style: border
       - type: custom:google-calendar-card
         title: Google Calendar - Day Timeline
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: day
         color_style: full
 
@@ -43,16 +55,25 @@ views:
     cards:
       - type: custom:google-calendar-card
         title: Pill Badges (Default)
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: agenda
         color_style: pill
         days_to_show: 7
       - type: custom:google-calendar-card
         title: Accent Left Border
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: agenda
         color_style: border
         days_to_show: 7
       - type: custom:google-calendar-card
         title: Full Tinted Background
+        entities:
+          - calendar.familie
+          - calendar.studium
         default_view: agenda
         color_style: full
         days_to_show: 7

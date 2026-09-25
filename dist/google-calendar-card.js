@@ -1904,12 +1904,6 @@ class GoogleCalendarCard extends HTMLElement {
     if (!config) {
       throw new Error("Invalid configuration provided.");
     }
-    const hasEntities = config.entities && (Array.isArray(config.entities) ? config.entities.length > 0 : Boolean(config.entities));
-    const hasGoogleApi = Boolean(config.google_api?.api_key && config.google_api?.calendar_id);
-
-    if (!hasEntities && !hasGoogleApi) {
-      throw new Error("You must specify either 'entities' or 'google_api' in card config.");
-    }
 
     this._config = {
       title: "Google Calendar",
@@ -2160,6 +2154,13 @@ class GoogleCalendarCard extends HTMLElement {
     let contentHtml = "";
     if (this._error) {
       contentHtml = `<div class="gc-error-box"><ha-icon icon="mdi:alert-circle-outline"></ha-icon> ${this._error}</div>`;
+    } else if (this._entities.length === 0 && !this._config.google_api?.api_key) {
+      contentHtml = `
+        <div class="gc-empty-state">
+          <ha-icon icon="mdi:calendar-search"></ha-icon>
+          <p>Please select a calendar entity in the card settings.</p>
+        </div>
+      `;
     } else if (this._loading && this._events.length === 0) {
       contentHtml = `
         <div class="gc-loading-spinner">
