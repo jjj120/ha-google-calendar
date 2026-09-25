@@ -30,10 +30,12 @@ function cleanModuleSyntax(code) {
     .replace(/import\s+(?:(?:\*\s+as\s+\w+)|(?:\{[^}]*\})|(?:\w+))?\s*(?:from\s*)?['"][^'"]+['"];?/g, "")
     // Remove export default
     .replace(/export\s+default\s+/g, "")
-    // Remove export keyword from const, let, var, function, class
-    .replace(/export\s+(const|let|var|function|class)\s+/g, "$1 ")
     // Remove export { ... }
-    .replace(/export\s*\{[^}]*\};?/g, "");
+    .replace(/export\s*\{[^}]*\};?/g, "")
+    // Remove export keyword from async function, function, const, let, var, class
+    .replace(/export\s+(async\s+function|function|const|let|var|class)\s+/g, "$1 ")
+    // Remove any remaining standalone export at start of line
+    .replace(/^export\s+/gm, "");
 }
 
 function build() {
@@ -99,7 +101,7 @@ if (!window.customCards.some(c => c.type === "google-calendar-card")) {
   fs.writeFileSync(distFile, bundleContent, "utf-8");
   console.log(`Bundle created successfully: ${distFile} (${(bundleContent.length / 1024).toFixed(1)} KB)`);
 
-  // Also copy to custom_components/google_calendar_card/frontend
+  // Copy to custom_components/google_calendar_card/frontend
   const ccFrontendDir = path.join(rootDir, "custom_components", "google_calendar_card", "frontend");
   if (!fs.existsSync(ccFrontendDir)) {
     fs.mkdirSync(ccFrontendDir, { recursive: true });
@@ -107,7 +109,7 @@ if (!window.customCards.some(c => c.type === "google-calendar-card")) {
   fs.copyFileSync(distFile, path.join(ccFrontendDir, "google-calendar-card.js"));
   console.log(`Synced bundle to custom_components/google_calendar_card/frontend/google-calendar-card.js`);
 
-  // Also copy to ha-config if directories exist
+  // Copy to ha-config if directories exist
   const haCcFrontendDir = path.join(rootDir, "ha-config", "custom_components", "google_calendar_card", "frontend");
   if (fs.existsSync(path.dirname(haCcFrontendDir))) {
     fs.mkdirSync(haCcFrontendDir, { recursive: true });

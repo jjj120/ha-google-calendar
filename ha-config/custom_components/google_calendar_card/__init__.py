@@ -25,6 +25,7 @@ from .const import DOMAIN, SERVICE_GET_EVENTS, WS_TYPE_GET_EVENTS
 
 _LOGGER = logging.getLogger(__name__)
 
+CARD_VERSION = "1.0.1"
 CARD_URL = "/google_calendar_card/google-calendar-card.js"
 CARD_DIR = os.path.join(os.path.dirname(__file__), "frontend")
 CARD_PATH = os.path.join(CARD_DIR, "google-calendar-card.js")
@@ -126,13 +127,13 @@ async def _register_card(hass: HomeAssistant) -> None:
                     cache_headers=False,
                 )
             ])
-            add_extra_js_url(hass, CARD_URL)
+            add_extra_js_url(hass, f"{CARD_URL}?v={CARD_VERSION}")
             hass.data[f"{DOMAIN}_card_registered"] = True
-            _LOGGER.info("Registered Google Calendar Card frontend resource at %s", CARD_URL)
+            _LOGGER.info("Registered Google Calendar Card frontend resource at %s?v=%s", CARD_URL, CARD_VERSION)
         except Exception as err:
             _LOGGER.warning("Could not register static path for Google Calendar Card: %s", err)
             try:
-                add_extra_js_url(hass, CARD_URL)
+                add_extra_js_url(hass, f"{CARD_URL}?v={CARD_VERSION}")
             except Exception:
                 pass
 

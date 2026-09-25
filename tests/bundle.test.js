@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,4 +67,9 @@ test("bundle includes all 11 Google colorId definitions and contrast helper", ()
     content.includes("getTextContrastColor"),
     "Bundle should contain contrast calculation function"
   );
+});
+
+test("bundle has zero syntax errors (validates cleanly with node -c)", () => {
+  const result = execFileSync(process.execPath, ["-c", distPath], { encoding: "utf-8" });
+  assert.equal(result, "");
 });

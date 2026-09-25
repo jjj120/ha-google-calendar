@@ -768,7 +768,7 @@ const GOOGLE_API_BASE = "https://www.googleapis.com/calendar/v3";
  * @param {string} [calendarName=""] - Optional display name for calendar
  * @returns {Promise<Array>} Normalized events
  */
-export async function fetchEventsDirectGoogle(
+async function fetchEventsDirectGoogle(
   apiKey,
   calendarId,
   startTime,
@@ -851,7 +851,7 @@ export async function fetchEventsDirectGoogle(
  * @param {Object} [colorOverrides={}] - Custom color overrides
  * @returns {Promise<Array>} List of normalized events
  */
-export async function fetchEventsFromHA(hass, entityId, startTime, endTime, colorOverrides = {}) {
+async function fetchEventsFromHA(hass, entityId, startTime, endTime, colorOverrides = {}) {
   const startIso = startTime instanceof Date ? startTime.toISOString() : startTime;
   const endIso = endTime instanceof Date ? endTime.toISOString() : endTime;
 
