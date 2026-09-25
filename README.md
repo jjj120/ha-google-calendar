@@ -2,8 +2,6 @@
 
 A modern Home Assistant Lovelace card for Google Calendar with full support for Google's individual per-event `colorId` parameter, multi-view layout, native `<ha-form>` visual configuration, and GUI integration setup.
 
-![Google Calendar Card](https://raw.githubusercontent.com/jonas/ha-google-calendar/main/preview.png)
-
 ---
 
 ## Highlights
@@ -31,7 +29,7 @@ A modern Home Assistant Lovelace card for Google Calendar with full support for 
 
 1. Open **HACS** in your Home Assistant instance.
 2. Go to **Frontend** -> Click the three dots in top right -> **Custom repositories**.
-3. Add repository `https://github.com/jonas/ha-google-calendar` with category `Lovelace`.
+3. Add repository `https://github.com/jjj120/ha-google-calendar` with category `Lovelace`.
 4. Click **Download**.
 
 ### Method 2: Manual Installation
@@ -131,4 +129,4 @@ docker compose down
 
 ## License
 
-MIT © Jonas
+MIT © jjj120

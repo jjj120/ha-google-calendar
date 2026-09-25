@@ -1,12 +1,12 @@
 {
   "domain": "google_calendar_card",
   "name": "Google Calendar Card Helper",
-  "codeowners": ["@jonas"],
+  "codeowners": ["@jjj120"],
   "config_flow": true,
   "dependencies": ["google"],
-  "documentation": "https://github.com/jonas/ha-google-calendar",
+  "documentation": "https://github.com/jjj120/ha-google-calendar",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/jonas/ha-google-calendar/issues",
+  "issue_tracker": "https://github.com/jjj120/ha-google-calendar/issues",
   "requirements": [],
   "version": "1.0.0"
 }

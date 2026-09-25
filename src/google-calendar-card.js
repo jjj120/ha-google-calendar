@@ -473,5 +473,5 @@ window.customCards.push({
   name: "Google Calendar Card",
   description: "Displays Google Calendar events with per-event colorId support, multi-view layout, and rich customization.",
   preview: true,
-  documentationURL: "https://github.com/jonas/ha-google-calendar",
+  documentationURL: "https://github.com/jjj120/ha-google-calendar",
 });

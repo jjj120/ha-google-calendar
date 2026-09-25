@@ -1,7 +1,7 @@
 /**
  * Google Calendar Card for Home Assistant Lovelace
  * With individual event colorId support and multi-view layout.
- * https://github.com/jonas/ha-google-calendar
+ * https://github.com/jjj120/ha-google-calendar
  * License: MIT
  */
 (() => {
@@ -2405,7 +2405,7 @@ window.customCards.push({
   name: "Google Calendar Card",
   description: "Displays Google Calendar events with per-event colorId support, multi-view layout, and rich customization.",
   preview: true,
-  documentationURL: "https://github.com/jonas/ha-google-calendar",
+  documentationURL: "https://github.com/jjj120/ha-google-calendar",
 });
 
 window.customCards = window.customCards || [];
@@ -2415,7 +2415,7 @@ if (!window.customCards.some(c => c.type === "google-calendar-card")) {
     name: "Google Calendar Card",
     description: "Displays Google Calendar events with per-event colorId support, multi-view layout, and rich customization.",
     preview: true,
-    documentationURL: "https://github.com/jonas/ha-google-calendar",
+    documentationURL: "https://github.com/jjj120/ha-google-calendar",
   });
 }
 
