@@ -132,6 +132,11 @@ class GoogleCalendarColorClient:
 
                 color_id = item.get("colorId")
                 color_info = GOOGLE_EVENT_COLORS.get(color_id) if color_id else None
+                start_obj = item.get("start", {})
+                end_obj = item.get("end", {})
+                start_val = start_obj.get("dateTime") or start_obj.get("date")
+                end_val = end_obj.get("dateTime") or end_obj.get("date")
+                is_all_day = bool(start_obj.get("date") and not start_obj.get("dateTime"))
 
                 normalized_events.append(
                     {
@@ -139,10 +144,13 @@ class GoogleCalendarColorClient:
                         "summary": item.get("summary", "(No title)"),
                         "description": item.get("description", ""),
                         "location": item.get("location", ""),
-                        "start": item.get("start", {}),
-                        "end": item.get("end", {}),
+                        "start": start_val,
+                        "end": end_val,
+                        "is_all_day": is_all_day,
+                        "color_id": color_id,
                         "colorId": color_id,
                         "color": color_info.get("background") if color_info else None,
+                        "background_color": color_info.get("background") if color_info else None,
                         "colorName": color_info.get("name") if color_info else None,
                         "htmlLink": item.get("htmlLink", ""),
                     }
@@ -182,9 +190,7 @@ class GoogleCalendarColorClient:
             for ev in raw_events:
                 start_val = ev.get("start")
                 end_val = ev.get("end")
-
-                start_obj = {"dateTime": start_val} if "T" in str(start_val) else {"date": str(start_val)}
-                end_obj = {"dateTime": end_val} if "T" in str(end_val) else {"date": str(end_val)}
+                is_all_day = "T" not in str(start_val)
 
                 results.append(
                     {
@@ -192,10 +198,13 @@ class GoogleCalendarColorClient:
                         "summary": ev.get("summary", ""),
                         "description": ev.get("description", ""),
                         "location": ev.get("location", ""),
-                        "start": start_obj,
-                        "end": end_obj,
+                        "start": start_val,
+                        "end": end_val,
+                        "is_all_day": is_all_day,
+                        "color_id": None,
                         "colorId": None,
                         "color": None,
+                        "background_color": None,
                     }
                 )
             return results

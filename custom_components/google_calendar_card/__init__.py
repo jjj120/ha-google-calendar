@@ -130,6 +130,21 @@ async def _register_card(hass: HomeAssistant) -> None:
             add_extra_js_url(hass, f"{CARD_URL}?v={CARD_VERSION}")
             hass.data[f"{DOMAIN}_card_registered"] = True
             _LOGGER.info("Registered Google Calendar Card frontend resource at %s?v=%s", CARD_URL, CARD_VERSION)
+
+            # Auto-register in Lovelace resources collection if available
+            try:
+                ll_data = hass.data.get("lovelace")
+                if ll_data and hasattr(ll_data, "resources"):
+                    resources = ll_data.resources
+                    if hasattr(resources, "async_items") and hasattr(resources, "async_create_item"):
+                        existing = [item.get("url") for item in (resources.async_items() or [])]
+                        if not any("google-calendar-card.js" in (url or "") for url in existing):
+                            await resources.async_create_item({
+                                "res_type": "module",
+                                "url": f"{CARD_URL}?v={CARD_VERSION}",
+                            })
+            except Exception as res_err:
+                _LOGGER.debug("Could not auto-register Lovelace resource: %s", res_err)
         except Exception as err:
             _LOGGER.warning("Could not register static path for Google Calendar Card: %s", err)
             try:

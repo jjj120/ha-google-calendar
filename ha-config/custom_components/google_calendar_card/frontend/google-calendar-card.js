@@ -871,23 +871,28 @@ async function fetchEventsFromHA(hass, entityId, startTime, endTime, colorOverri
 
     if (wsResult && Array.isArray(wsResult.events)) {
       return wsResult.events.map((ev) => {
-        // Apply card-level color overrides if provided
-        const color = getEventColor(ev.color_id, colorOverrides, ev.background_color || calendarColor);
+        const startVal = typeof ev.start === "object" ? (ev.start?.dateTime || ev.start?.date) : ev.start;
+        const endVal = typeof ev.end === "object" ? (ev.end?.dateTime || ev.end?.date) : ev.end;
+        const isAllDay = ev.is_all_day != null ? Boolean(ev.is_all_day) : Boolean(ev.start?.date && !ev.start?.dateTime);
+        const colorId = ev.color_id != null ? String(ev.color_id) : (ev.colorId != null ? String(ev.colorId) : null);
+        const bgColor = ev.background_color || ev.color || calendarColor;
+        const color = getEventColor(colorId, colorOverrides, bgColor);
+
         return {
-          id: ev.id || `${entityId}-${ev.start}-${ev.summary}`,
+          id: ev.id || `${entityId}-${startVal}-${ev.summary}`,
           entity_id: entityId,
           calendar_name: calendarName,
           summary: ev.summary || "(No title)",
           description: ev.description || "",
           location: ev.location || "",
-          start: ev.start,
-          end: ev.end,
-          is_all_day: Boolean(ev.is_all_day),
-          color_id: ev.color_id != null ? String(ev.color_id) : null,
+          start: startVal,
+          end: endVal,
+          is_all_day: isAllDay,
+          color_id: colorId,
           color_name: color.name,
           background_color: color.background,
           foreground_color: color.foreground,
-          html_link: ev.html_link || "",
+          html_link: ev.html_link || ev.htmlLink || "",
           is_recurring: Boolean(ev.is_recurring),
         };
       });

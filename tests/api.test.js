@@ -172,3 +172,45 @@ test("fetchEventsDirectGoogle makes proper API request with API Key and normaliz
     globalThis.fetch = originalFetch;
   }
 });
+
+test("fetchEventsFromHA handles nested start/end objects and camelCase colorId from companion backend", async () => {
+  const mockEvents = [
+    {
+      id: "ev-nested-1",
+      summary: "Dentist",
+      start: { dateTime: "2026-09-28T09:00:00Z" },
+      end: { dateTime: "2026-09-28T10:00:00Z" },
+      colorId: "9", // Blueberry
+      color: "#3F51B5",
+    },
+    {
+      id: "ev-nested-2",
+      summary: "Full Day Holiday",
+      start: { date: "2026-09-29" },
+      end: { date: "2026-09-30" },
+      colorId: "6", // Tangerine
+      color: "#F4511E",
+    },
+  ];
+
+  const mockHass = {
+    states: {
+      "calendar.work": {
+        attributes: { friendly_name: "Work Calendar" },
+      },
+    },
+    callWS: async () => ({ events: mockEvents }),
+  };
+
+  const events = await fetchEventsFromHA(mockHass, "calendar.work", new Date("2026-09-28"), new Date("2026-09-30"));
+  assert.equal(events.length, 2);
+  assert.equal(events[0].start, "2026-09-28T09:00:00Z");
+  assert.equal(events[0].is_all_day, false);
+  assert.equal(events[0].color_id, "9");
+  assert.equal(events[0].background_color, "#3F51B5");
+
+  assert.equal(events[1].start, "2026-09-29");
+  assert.equal(events[1].is_all_day, true);
+  assert.equal(events[1].color_id, "6");
+  assert.equal(events[1].background_color, "#F4511E");
+});

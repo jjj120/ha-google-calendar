@@ -23,6 +23,10 @@ ha-config/blueprints/
 ha-config/.ha_run.lock
 ha-config/.HA_VERSION
 ha-config/custom_components/**/__pycache__/
+ha-config/secrets.yaml
+ha-config/scenes.yaml
+ha-config/scripts.yaml
+ha-config/automations.yaml
 
 # OS & Editor
 .DS_Store
