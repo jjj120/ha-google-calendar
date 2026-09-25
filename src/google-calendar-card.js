@@ -87,6 +87,7 @@ export class GoogleCalendarCard extends HTMLElement {
     }
 
     this._setupRefreshInterval();
+    this.render();
     if (this._hass) {
       this._fetchEvents();
     }
@@ -104,6 +105,7 @@ export class GoogleCalendarCard extends HTMLElement {
 
   connectedCallback() {
     this._setupRefreshInterval();
+    this.render();
   }
 
   disconnectedCallback() {
