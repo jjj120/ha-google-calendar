@@ -247,6 +247,8 @@ export const cardStyles = `
     font-size: 0.95rem;
     font-weight: 500;
     line-height: 1.3;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .gc-event-location {
@@ -278,22 +280,35 @@ export const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .gc-month-header-row {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     text-align: center;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--gc-muted);
     padding: 4px 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .gc-month-header-cell {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .gc-month-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .gc-month-cell {
@@ -305,6 +320,9 @@ export const cardStyles = `
     flex-direction: column;
     background-color: var(--gc-bg);
     cursor: pointer;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   .gc-month-cell:hover {
@@ -335,6 +353,10 @@ export const cardStyles = `
     font-size: 0.75rem;
     font-weight: 500;
     margin-bottom: 2px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .gc-cell-events {
@@ -343,6 +365,9 @@ export const cardStyles = `
     gap: 2px;
     flex: 1;
     overflow: hidden;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .gc-month-event-chip {
@@ -350,13 +375,28 @@ export const cardStyles = `
     font-weight: 500;
     padding: 2px 4px;
     border-radius: 4px;
-    white-space: nowrap;
+    cursor: pointer;
+    line-height: 1.25;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: flex;
-    gap: 2px;
-    cursor: pointer;
-    line-height: 1.2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .gc-chip-time {
+    font-weight: 600;
+    white-space: nowrap;
+    margin-right: 2px;
+  }
+
+  .gc-chip-summary {
+    min-width: 0;
   }
 
   .gc-month-overflow-badge {
@@ -365,18 +405,26 @@ export const cardStyles = `
     font-weight: 600;
     margin-top: 1px;
     padding-left: 2px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Week View Styles */
   .gc-week-container {
     overflow-x: auto;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .gc-week-columns {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px;
     min-width: 500px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .gc-week-col {
@@ -385,6 +433,9 @@ export const cardStyles = `
     padding: 6px;
     min-height: 260px;
     background-color: var(--gc-bg);
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   .gc-week-today {
@@ -397,6 +448,7 @@ export const cardStyles = `
     border-bottom: 1px solid var(--gc-border);
     padding-bottom: 6px;
     margin-bottom: 8px;
+    overflow: hidden;
   }
 
   .gc-week-day-name {
@@ -404,6 +456,9 @@ export const cardStyles = `
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--gc-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .gc-week-day-num {
@@ -419,6 +474,8 @@ export const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .gc-week-event-card {
@@ -426,17 +483,30 @@ export const cardStyles = `
     padding: 4px 6px;
     font-size: 0.72rem;
     cursor: pointer;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   .gc-week-event-time {
     font-weight: 600;
     opacity: 0.85;
     margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .gc-week-event-summary {
     font-weight: 500;
-    line-height: 1.2;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Day View Styles */
@@ -459,6 +529,8 @@ export const cardStyles = `
     align-items: center;
     gap: 8px;
     padding: 4px 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .gc-day-allday-label {
@@ -466,6 +538,7 @@ export const cardStyles = `
     font-weight: 600;
     color: var(--gc-muted);
     min-width: 50px;
+    flex-shrink: 0;
   }
 
   .gc-day-allday-list {
@@ -473,6 +546,7 @@ export const cardStyles = `
     flex-wrap: wrap;
     gap: 4px;
     flex: 1;
+    min-width: 0;
   }
 
   .gc-day-allday-chip {
@@ -481,6 +555,15 @@ export const cardStyles = `
     padding: 3px 8px;
     border-radius: 12px;
     cursor: pointer;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .gc-timeline-container {
@@ -540,11 +623,19 @@ export const cardStyles = `
     overflow: hidden;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    box-sizing: border-box;
   }
 
   .gc-timed-event-summary {
     font-size: 0.85rem;
     font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .gc-timed-event-time {

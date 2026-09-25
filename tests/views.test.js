@@ -77,3 +77,27 @@ test("renderDayView renders timeline and all-day sections", () => {
   assert.ok(html.includes("Dentist Appointment"), "Day view should render timed event");
   assert.ok(html.includes("Team All-Hands"), "Day view should render second timed event");
 });
+
+test("renderMonthView renders event chips with proper time and summary structure", () => {
+  const longEvent = [
+    {
+      id: "evt-long",
+      summary: "Very Long Event Name That Exceeds Normal Single Line Column Width",
+      start: now.toISOString(),
+      end: new Date(now.getTime() + 3600000).toISOString(),
+      is_all_day: false,
+    },
+    {
+      id: "evt-allday",
+      summary: "All Day Conference With Long Title",
+      start: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+      end: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate() + 1).padStart(2, "0")}`,
+      is_all_day: true,
+    },
+  ];
+  const html = renderMonthView(longEvent, now);
+  assert.ok(html.includes('class="gc-chip-time"'), "Timed event chip should have gc-chip-time span");
+  assert.ok(html.includes('class="gc-chip-summary"'), "Event chip should have gc-chip-summary span");
+  assert.ok(html.includes("Very Long Event Name That Exceeds Normal Single Line Column Width"), "Should include full summary in tooltip and span");
+});
+

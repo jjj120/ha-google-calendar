@@ -145,10 +145,7 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
         <div class="gc-month-event-chip"
              data-event-id="${escapeHtml(ev.id)}"
              style="background-color: ${bgColor}; color: ${fgColor};"
-             title="${escapeHtml(ev.summary)} (${timeText ? timeText.trim() : 'All Day'})">
-          <span class="gc-chip-time">${timeText}</span>
-          <span class="gc-chip-summary">${escapeHtml(ev.summary)}</span>
-        </div>
+             title="${escapeHtml(ev.summary)} (${timeText ? timeText.trim() : 'All Day'})">${timeText ? `<span class="gc-chip-time">${timeText}</span>` : ""}<span class="gc-chip-summary">${escapeHtml(ev.summary)}</span></div>
       `;
     }
 

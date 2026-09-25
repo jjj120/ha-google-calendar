@@ -69,7 +69,24 @@ test("bundle includes all 11 Google colorId definitions and contrast helper", ()
   );
 });
 
+test("bundle includes proper 2-line clamp truncation and grid column styles", () => {
+  const content = fs.readFileSync(distPath, "utf-8");
+  assert.ok(
+    content.includes("grid-template-columns: repeat(7, minmax(0, 1fr));"),
+    "Bundle must define grid tracks with minmax(0, 1fr) to prevent content-based expansion"
+  );
+  assert.ok(
+    content.includes("-webkit-line-clamp: 2;"),
+    "Bundle must include 2-line clamping for event chips and cards"
+  );
+  assert.ok(
+    content.includes("overflow-wrap: anywhere;"),
+    "Bundle must include overflow-wrap: anywhere to allow breaking long words across lines"
+  );
+});
+
 test("bundle has zero syntax errors (validates cleanly with node -c)", () => {
   const result = execFileSync(process.execPath, ["-c", distPath], { encoding: "utf-8" });
   assert.equal(result, "");
 });
+
