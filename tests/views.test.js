@@ -66,7 +66,24 @@ test("renderMonthView renders calendar grid with event chips", () => {
 });
 
 test("renderWeekView renders 7-day columns with events", () => {
-  const html = renderWeekView(sampleEvents, now);
+  const fixedDate = new Date("2026-09-23T15:00:00Z");
+  const weekEvents = [
+    {
+      id: "evt-1",
+      summary: "Dentist Appointment",
+      start: "2026-09-23T09:00:00Z",
+      end: "2026-09-23T10:00:00Z",
+      is_all_day: false,
+    },
+    {
+      id: "evt-2",
+      summary: "Team All-Hands",
+      start: "2026-09-24T14:00:00Z",
+      end: "2026-09-24T15:00:00Z",
+      is_all_day: false,
+    },
+  ];
+  const html = renderWeekView(weekEvents, fixedDate);
   assert.ok(html.includes("gc-week-container"), "Should render week container");
   assert.ok(html.includes("Dentist Appointment"), "Week view should display event");
 });

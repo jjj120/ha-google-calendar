@@ -152,6 +152,10 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
       `;
     }
 
+    html += `
+        </div>
+    `;
+
     if (overflowCount > 0) {
       html += `
         <div class="gc-month-overflow-badge" data-date="${dayDateStr}">
@@ -161,7 +165,6 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
     }
 
     html += `
-        </div>
       </div>
     `;
 

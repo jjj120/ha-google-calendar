@@ -518,6 +518,8 @@ const cardStyles = `
     box-sizing: border-box;
     min-width: 0;
     max-width: 100%;
+    min-height: 2em;
+    flex-shrink: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -541,9 +543,10 @@ const cardStyles = `
     font-size: 0.65rem;
     color: var(--gc-muted);
     font-weight: 600;
-    margin-top: 1px;
+    margin-top: 2px;
     padding-left: 2px;
     min-width: 0;
+    flex-shrink: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1442,6 +1445,10 @@ function renderMonthView(events, currentDate = new Date(), options = {}) {
       `;
     }
 
+    html += `
+        </div>
+    `;
+
     if (overflowCount > 0) {
       html += `
         <div class="gc-month-overflow-badge" data-date="${dayDateStr}">
@@ -1451,7 +1458,6 @@ function renderMonthView(events, currentDate = new Date(), options = {}) {
     }
 
     html += `
-        </div>
       </div>
     `;
 
