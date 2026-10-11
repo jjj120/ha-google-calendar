@@ -23,6 +23,7 @@ class GoogleCalendarCardEditor extends HTMLElement {
     this._config = { ...config };
     if (this._form) {
       this._form.data = this._formatData(this._config);
+      this._renderCalendarColors();
     } else {
       this.render();
     }
@@ -238,8 +239,66 @@ class GoogleCalendarCardEditor extends HTMLElement {
           display: block;
           padding: 12px 0;
         }
+        .cal-colors-section {
+          margin-top: 8px;
+        }
+        .cal-colors-section .section-title {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--secondary-text-color, #727272);
+          margin-bottom: 4px;
+        }
+        .cal-color-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 6px 4px;
+          border-bottom: 1px solid var(--divider-color, rgba(0,0,0,0.08));
+        }
+        .cal-color-row:last-child {
+          border-bottom: none;
+        }
+        .cal-color-row .cal-name {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 0.85rem;
+        }
+        .cal-color-row .cal-color-control {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .cal-color-row .cal-color-control input[type="color"] {
+          width: 32px;
+          height: 28px;
+          padding: 0;
+          border: 1px solid var(--divider-color, rgba(0,0,0,0.12));
+          border-radius: 6px;
+          background: transparent;
+          cursor: pointer;
+        }
+        .cal-color-row .cal-color-control .cal-color-reset {
+          font-size: 0.75rem;
+          color: var(--secondary-text-color, #727272);
+          cursor: pointer;
+          background: transparent;
+          border: none;
+        }
+        .cal-colors-empty {
+          font-size: 0.8rem;
+          color: var(--secondary-text-color, #727272);
+          padding: 4px;
+        }
       </style>
       <ha-form id="form"></ha-form>
+      <div class="cal-colors-section">
+        <div class="section-title">Calendar Default Colors</div>
+        <div id="cal-colors-list"></div>
+      </div>
     `;
 
     const form = this.shadowRoot.getElementById("form");
@@ -251,9 +310,95 @@ class GoogleCalendarCardEditor extends HTMLElement {
     form.computeHelper = (s) => this._computeHelper(s);
 
     form.addEventListener("value-changed", (ev) => this._valueChanged(ev));
+
+    this._renderCalendarColors();
+  }
+
+  _renderCalendarColors() {
+    const listEl = this.shadowRoot.getElementById("cal-colors-list");
+    if (!listEl) return;
+
+    const entities = this._getCalendarEntities();
+    if (entities.length === 0) {
+      listEl.innerHTML = `<div class="cal-colors-empty">Add calendar entities above to configure per-calendar colors.</div>`;
+      return;
+    }
+
+    const configColors = this._config.calendar_colors || {};
+    listEl.innerHTML = entities.map((entityId) => {
+      const friendly = this._hass?.states[entityId]?.attributes?.friendly_name || entityId;
+      const color = configColors[entityId] || "";
+      return `
+        <div class="cal-color-row" data-entity="${escapeHtmlAttr(entityId)}">
+          <div class="cal-name" title="${escapeHtmlAttr(entityId)}">${escapeHtmlAttr(friendly)}</div>
+          <div class="cal-color-control">
+            <input type="color" data-color-input value="${color || "#4285F4"}" />
+            ${color ? `<button type="button" class="cal-color-reset" data-color-reset>Reset</button>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.querySelectorAll("[data-color-input]").forEach((input) => {
+      input.addEventListener("change", (e) => {
+        const row = e.target.closest(".cal-color-row");
+        const entityId = row?.getAttribute("data-entity");
+        if (!entityId) return;
+        this._setCalendarColor(entityId, e.target.value);
+      });
+    });
+
+    listEl.querySelectorAll("[data-color-reset]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const row = e.target.closest(".cal-color-row");
+        const entityId = row?.getAttribute("data-entity");
+        if (!entityId) return;
+        this._setCalendarColor(entityId, null);
+      });
+    });
+  }
+
+  _getCalendarEntities() {
+    let entities = this._config.entities;
+    if (typeof entities === "string") {
+      entities = entities.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (!Array.isArray(entities)) {
+      entities = [];
+    }
+    return entities;
+  }
+
+  _setCalendarColor(entityId, hex) {
+    const calendarColors = { ...(this._config.calendar_colors || {}) };
+    if (hex) {
+      calendarColors[entityId] = hex;
+    } else {
+      delete calendarColors[entityId];
+    }
+    this._config = { ...this._config, calendar_colors: calendarColors };
+    this._dispatchConfigChanged();
+    this._renderCalendarColors();
+  }
+
+  _dispatchConfigChanged() {
+    const event = new CustomEvent("config-changed", {
+      detail: { config: this._config },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(event);
   }
 }
 
 if (!customElements.get("google-calendar-card-editor")) {
   customElements.define("google-calendar-card-editor", GoogleCalendarCardEditor);
+}
+
+function escapeHtmlAttr(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }

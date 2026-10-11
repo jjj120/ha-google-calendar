@@ -12,16 +12,18 @@ import { getEventColor } from "../colors.js";
  * @param {Date|string} startTime - Start of range
  * @param {Date|string} endTime - End of range
  * @param {Object} [colorOverrides={}] - Custom color overrides
+ * @param {Object} [calendarColors={}] - Per-entity default color map (entityId -> hex)
  * @returns {Promise<Array>} List of normalized events
  */
-export async function fetchEventsFromHA(hass, entityId, startTime, endTime, colorOverrides = {}) {
+export async function fetchEventsFromHA(hass, entityId, startTime, endTime, colorOverrides = {}, calendarColors = {}) {
   const startIso = startTime instanceof Date ? startTime.toISOString() : startTime;
   const endIso = endTime instanceof Date ? endTime.toISOString() : endTime;
 
   // Get calendar entity state and color attribute if present
   const entityState = hass.states[entityId];
   const calendarName = entityState?.attributes?.friendly_name || entityId;
-  const calendarColor = entityState?.attributes?.color || null;
+  // Config per-calendar color takes priority; fall back to the entity's color attribute.
+  const calendarColor = calendarColors[entityId] || entityState?.attributes?.color || null;
 
   // 1. Attempt WebSocket query to companion integration (preserves colorId)
   try {
@@ -33,6 +35,10 @@ export async function fetchEventsFromHA(hass, entityId, startTime, endTime, colo
     });
 
     if (wsResult && Array.isArray(wsResult.events)) {
+      const withColor = wsResult.events.filter((ev) => ev.color_id != null || ev.colorId != null).length;
+      console.debug(
+        `[google_calendar_card] fetch path=companion-ws events=${wsResult.events.length} withColorId=${withColor}`
+      );
       return wsResult.events.map((ev) => {
         const startVal = typeof ev.start === "object" ? (ev.start?.dateTime || ev.start?.date) : ev.start;
         const endVal = typeof ev.end === "object" ? (ev.end?.dateTime || ev.end?.date) : ev.end;
@@ -74,6 +80,7 @@ export async function fetchEventsFromHA(hass, entityId, startTime, endTime, colo
     );
 
     if (Array.isArray(rawEvents)) {
+      console.debug(`[google_calendar_card] fetch path=standard-ha-api events=${rawEvents.length}`);
       return rawEvents.map((ev) => {
         const isAllDay = Boolean(ev.start?.date && !ev.start?.dateTime);
         const startVal = ev.start?.dateTime || ev.start?.date;

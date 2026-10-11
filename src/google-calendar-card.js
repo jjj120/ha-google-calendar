@@ -86,6 +86,7 @@ export class GoogleCalendarCard extends HTMLElement {
       show_header: true,
       refresh_interval: 15, // minutes
       colors: {},
+      calendar_colors: {},
       grid_options: {},
       ...config,
     };
@@ -209,7 +210,7 @@ export class GoogleCalendarCard extends HTMLElement {
       // 1. Fetch from Home Assistant calendar entities
       if (this._hass && this._entities.length > 0) {
         const promises = this._entities.map((entityId) =>
-          fetchEventsFromHA(this._hass, entityId, start, end, this._config.colors)
+          fetchEventsFromHA(this._hass, entityId, start, end, this._config.colors, this._config.calendar_colors)
         );
         const results = await Promise.allSettled(promises);
         for (const res of results) {
