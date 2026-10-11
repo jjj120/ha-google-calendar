@@ -279,6 +279,7 @@ const cardStyles = `
     width: 100%;
     height: 100%;
     min-height: 0;
+    overflow: hidden;
   }
 
   .gc-agenda-day-group {
@@ -286,6 +287,7 @@ const cardStyles = `
     flex-direction: column;
     gap: 8px;
     min-height: 0;
+    flex-shrink: 0;
   }
 
   .gc-day-header {
@@ -301,7 +303,7 @@ const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 8px;
-    flex: 1;
+    flex-shrink: 0;
     min-height: 0;
   }
 
@@ -312,7 +314,7 @@ const cardStyles = `
     padding: 10px 12px;
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
-    min-height: 0;
+    flex-shrink: 0;
   }
 
   .gc-event-item:hover {
