@@ -38,6 +38,14 @@ function doesEventFallOnDate(event, dateObj) {
   }
 }
 
+function getWeekNumber(d) {
+  const date = new Date(d);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
 /**
  * Render Week View HTML.
  * @param {Array} events - Events list
@@ -66,7 +74,14 @@ export function renderWeekView(events, currentDate = new Date(), options = {}) {
     days.push(d);
   }
 
+  const endDate = days[days.length - 1];
+  const weekStartStr = startOfWeek.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  const weekEndStr = endDate.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  const weekYear = endDate.getFullYear();
+  const weekNum = getWeekNumber(startOfWeek);
+
   let html = `<div class="gc-week-container">`;
+  html += `<div class="gc-week-title">${weekStartStr} – ${weekEndStr} ${weekYear} · W${weekNum}</div>`;
   html += `<div class="gc-week-columns">`;
 
   for (const day of days) {

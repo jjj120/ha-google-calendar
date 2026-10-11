@@ -130,9 +130,11 @@ const cardStyles = `
     background-color: var(--gc-bg);
     border-radius: var(--gc-radius);
     box-shadow: var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1));
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   /* Header and Navigation */
@@ -217,9 +219,10 @@ const cardStyles = `
   /* Content area */
   .gc-content {
     padding: 12px 16px;
-    min-height: 250px;
-    max-height: 650px;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
+    flex: 1;
   }
 
   /* Empty state */
@@ -386,6 +389,14 @@ const cardStyles = `
   }
 
   /* Month Grid View Styles */
+  .gc-month-title {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 4px 0 8px;
+    color: var(--gc-text);
+  }
+
   .gc-month-container {
     display: flex;
     flex-direction: column;
@@ -522,6 +533,14 @@ const cardStyles = `
   }
 
   /* Week View Styles */
+  .gc-week-title {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 4px 0 6px;
+    color: var(--gc-muted);
+  }
+
   .gc-week-container {
     overflow-x: auto;
     width: 100%;
@@ -632,6 +651,17 @@ const cardStyles = `
     color: var(--gc-text);
     border-bottom: 1px solid var(--gc-border);
     padding-bottom: 8px;
+  }
+
+  .gc-day-today-badge {
+    display: inline-block;
+    background-color: var(--gc-accent);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
   }
 
   .gc-day-allday-wrap {
@@ -1306,6 +1336,8 @@ function renderMonthView(events, currentDate = new Date(), options = {}) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  const monthTitle = currentDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
+
   // First day of current month
   const firstDayOfMonth = new Date(year, month, 1);
   // Last day of current month
@@ -1334,6 +1366,7 @@ function renderMonthView(events, currentDate = new Date(), options = {}) {
   }
 
   let html = `<div class="gc-month-container">`;
+  html += `<div class="gc-month-title">${monthTitle}</div>`;
 
   // 1. Day of week headers
   html += `<div class="gc-month-header-row">`;
@@ -1446,6 +1479,14 @@ function doesEventFallOnDate(event, dateObj) {
   }
 }
 
+function getWeekNumber(d) {
+  const date = new Date(d);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
 /**
  * Render Week View HTML.
  * @param {Array} events - Events list
@@ -1474,7 +1515,14 @@ function renderWeekView(events, currentDate = new Date(), options = {}) {
     days.push(d);
   }
 
+  const endDate = days[days.length - 1];
+  const weekStartStr = startOfWeek.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  const weekEndStr = endDate.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  const weekYear = endDate.getFullYear();
+  const weekNum = getWeekNumber(startOfWeek);
+
   let html = `<div class="gc-week-container">`;
+  html += `<div class="gc-week-title">${weekStartStr} – ${weekEndStr} ${weekYear} · W${weekNum}</div>`;
   html += `<div class="gc-week-columns">`;
 
   for (const day of days) {
@@ -1589,6 +1637,11 @@ function renderDayView(events, currentDate = new Date(), options = {}) {
 
   // Header with full date
   html += `<div class="gc-day-view-header">${dateHeader}</div>`;
+
+  // Today badge
+  if (isToday) {
+    html += `<div class="gc-day-today-badge">Today</div>`;
+  }
 
   // All-day events section
   if (allDayEvents.length > 0) {
@@ -1992,7 +2045,22 @@ class GoogleCalendarCard extends HTMLElement {
   }
 
   getCardSize() {
+    const gridRows = this._config?.grid_options?.rows;
+    if (gridRows) return gridRows;
     return this._activeView === "month" ? 7 : 5;
+  }
+
+  getGridOptions() {
+    const gridOptions = this._config?.grid_options;
+    if (!gridOptions) return undefined;
+    return {
+      rows: gridOptions.rows ?? undefined,
+      columns: gridOptions.columns ?? undefined,
+      min_rows: gridOptions.min_rows ?? 1,
+      min_columns: gridOptions.min_columns ?? 1,
+      max_rows: gridOptions.max_rows ?? undefined,
+      max_columns: gridOptions.max_columns ?? undefined,
+    };
   }
 
   setConfig(config) {
@@ -2013,8 +2081,29 @@ class GoogleCalendarCard extends HTMLElement {
       show_header: true,
       refresh_interval: 15, // minutes
       colors: {},
+      grid_options: {},
       ...config,
     };
+
+    this._config.grid_options = {
+      scale: 1,
+      ...this._config.grid_options,
+    };
+
+    // Calculate zoom from grid_options if specified
+    // Default HA card is 6 cols × 6 rows, each cell ~30px × 56px
+    // This makes the card fill the allocated grid space proportionally
+    const defaultCols = 6;
+    const defaultRows = 6;
+    const gridCols = this._config.grid_options?.columns;
+    const gridRows = this._config.grid_options?.rows;
+    if (gridCols || gridRows) {
+      const colZoom = (gridCols ?? defaultCols) / defaultCols;
+      const rowZoom = (gridRows ?? defaultRows) / defaultRows;
+      this._config._gridZoom = Math.max(colZoom, rowZoom);
+    } else {
+      this._config._gridZoom = 1;
+    }
 
     if (Array.isArray(this._config.entities)) {
       this._entities = this._config.entities;

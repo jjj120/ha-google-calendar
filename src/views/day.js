@@ -67,6 +67,11 @@ export function renderDayView(events, currentDate = new Date(), options = {}) {
   // Header with full date
   html += `<div class="gc-day-view-header">${dateHeader}</div>`;
 
+  // Today badge
+  if (isToday) {
+    html += `<div class="gc-day-today-badge">Today</div>`;
+  }
+
   // All-day events section
   if (allDayEvents.length > 0) {
     html += `<div class="gc-day-allday-wrap">`;

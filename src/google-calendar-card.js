@@ -50,7 +50,22 @@ export class GoogleCalendarCard extends HTMLElement {
   }
 
   getCardSize() {
+    const gridRows = this._config?.grid_options?.rows;
+    if (gridRows) return gridRows;
     return this._activeView === "month" ? 7 : 5;
+  }
+
+  getGridOptions() {
+    const gridOptions = this._config?.grid_options;
+    if (!gridOptions) return undefined;
+    return {
+      rows: gridOptions.rows ?? undefined,
+      columns: gridOptions.columns ?? undefined,
+      min_rows: gridOptions.min_rows ?? 1,
+      min_columns: gridOptions.min_columns ?? 1,
+      max_rows: gridOptions.max_rows ?? undefined,
+      max_columns: gridOptions.max_columns ?? undefined,
+    };
   }
 
   setConfig(config) {
@@ -71,8 +86,29 @@ export class GoogleCalendarCard extends HTMLElement {
       show_header: true,
       refresh_interval: 15, // minutes
       colors: {},
+      grid_options: {},
       ...config,
     };
+
+    this._config.grid_options = {
+      scale: 1,
+      ...this._config.grid_options,
+    };
+
+    // Calculate zoom from grid_options if specified
+    // Default HA card is 6 cols × 6 rows, each cell ~30px × 56px
+    // This makes the card fill the allocated grid space proportionally
+    const defaultCols = 6;
+    const defaultRows = 6;
+    const gridCols = this._config.grid_options?.columns;
+    const gridRows = this._config.grid_options?.rows;
+    if (gridCols || gridRows) {
+      const colZoom = (gridCols ?? defaultCols) / defaultCols;
+      const rowZoom = (gridRows ?? defaultRows) / defaultRows;
+      this._config._gridZoom = Math.max(colZoom, rowZoom);
+    } else {
+      this._config._gridZoom = 1;
+    }
 
     if (Array.isArray(this._config.entities)) {
       this._entities = this._config.entities;

@@ -72,7 +72,31 @@ test("renderWeekView renders 7-day columns with events", () => {
 });
 
 test("renderDayView renders timeline and all-day sections", () => {
-  const html = renderDayView(sampleEvents, now);
+  const fixedDate = new Date("2026-09-25T15:00:00Z");
+  const dayEvents = [
+    {
+      id: "evt-1",
+      summary: "Dentist Appointment",
+      start: "2026-09-25T12:00:00Z",
+      end: "2026-09-25T13:00:00Z",
+      is_all_day: false,
+    },
+    {
+      id: "evt-2",
+      summary: "Team All-Hands",
+      start: "2026-09-25T14:00:00Z",
+      end: "2026-09-25T15:00:00Z",
+      is_all_day: false,
+    },
+    {
+      id: "evt-3",
+      summary: "Vacation Day",
+      start: "2026-09-25",
+      end: "2026-09-26",
+      is_all_day: true,
+    },
+  ];
+  const html = renderDayView(dayEvents, fixedDate);
   assert.ok(html.includes("gc-day-view-container"), "Should render day view container");
   assert.ok(html.includes("Dentist Appointment"), "Day view should render timed event");
   assert.ok(html.includes("Team All-Hands"), "Day view should render second timed event");

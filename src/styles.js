@@ -20,9 +20,11 @@ export const cardStyles = `
     background-color: var(--gc-bg);
     border-radius: var(--gc-radius);
     box-shadow: var(--ha-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1));
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   /* Header and Navigation */
@@ -107,9 +109,10 @@ export const cardStyles = `
   /* Content area */
   .gc-content {
     padding: 12px 16px;
-    min-height: 250px;
-    max-height: 650px;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
+    flex: 1;
   }
 
   /* Empty state */
@@ -276,6 +279,14 @@ export const cardStyles = `
   }
 
   /* Month Grid View Styles */
+  .gc-month-title {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 4px 0 8px;
+    color: var(--gc-text);
+  }
+
   .gc-month-container {
     display: flex;
     flex-direction: column;
@@ -412,6 +423,14 @@ export const cardStyles = `
   }
 
   /* Week View Styles */
+  .gc-week-title {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 4px 0 6px;
+    color: var(--gc-muted);
+  }
+
   .gc-week-container {
     overflow-x: auto;
     width: 100%;
@@ -522,6 +541,17 @@ export const cardStyles = `
     color: var(--gc-text);
     border-bottom: 1px solid var(--gc-border);
     padding-bottom: 8px;
+  }
+
+  .gc-day-today-badge {
+    display: inline-block;
+    background-color: var(--gc-accent);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
   }
 
   .gc-day-allday-wrap {

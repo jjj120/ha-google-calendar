@@ -63,6 +63,8 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  const monthTitle = currentDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
+
   // First day of current month
   const firstDayOfMonth = new Date(year, month, 1);
   // Last day of current month
@@ -91,6 +93,7 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
   }
 
   let html = `<div class="gc-month-container">`;
+  html += `<div class="gc-month-title">${monthTitle}</div>`;
 
   // 1. Day of week headers
   html += `<div class="gc-month-header-row">`;
