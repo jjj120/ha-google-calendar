@@ -136,8 +136,9 @@ export function renderDayView(events, currentDate = new Date(), options = {}) {
     }
 
     const durationMin = Math.max(30, endMin - startMin); // Minimum 30 mins for readable box
-    const topPx = (startMin / 60) * 50; // Each hour row is 50px high
-    const heightPx = (durationMin / 60) * 50;
+    // Position as a percentage of the 24-hour day so the timeline can flex to fill the card.
+    const topPct = (startMin / 1440) * 100;
+    const heightPct = (durationMin / 1440) * 100;
 
     const bgColor = ev.background_color || "#4285F4";
     const fgColor = ev.foreground_color || "#FFFFFF";
@@ -148,7 +149,7 @@ export function renderDayView(events, currentDate = new Date(), options = {}) {
     html += `
       <div class="gc-day-timed-event"
            data-event-id="${escapeHtml(ev.id)}"
-           style="top: ${topPx}px; height: ${heightPx}px; background-color: ${bgColor}; color: ${fgColor};">
+           style="top: ${topPct.toFixed(2)}%; height: ${heightPct.toFixed(2)}%; background-color: ${bgColor}; color: ${fgColor};">
         <div class="gc-timed-event-summary">${escapeHtml(ev.summary)}</div>
         <div class="gc-timed-event-time">${timeRangeStr}</div>
         ${ev.location ? `<div class="gc-timed-event-location">${escapeHtml(ev.location)}</div>` : ''}

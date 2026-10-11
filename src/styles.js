@@ -166,12 +166,16 @@ export const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 16px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .gc-agenda-day-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-height: 0;
   }
 
   .gc-day-header {
@@ -187,6 +191,8 @@ export const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex: 1;
+    min-height: 0;
   }
 
   .gc-event-item {
@@ -196,6 +202,7 @@ export const cardStyles = `
     padding: 10px 12px;
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
+    min-height: 0;
   }
 
   .gc-event-item:hover {
@@ -452,17 +459,23 @@ export const cardStyles = `
   }
 
   .gc-week-container {
-    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
   }
 
   .gc-week-columns {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
     gap: 6px;
     min-width: 500px;
     width: 100%;
+    min-height: 0;
+    height: 100%;
     box-sizing: border-box;
   }
 
@@ -470,11 +483,14 @@ export const cardStyles = `
     border: 1px solid var(--gc-border);
     border-radius: 8px;
     padding: 6px;
-    min-height: calc(260px * var(--gc-row-scale, 1));
     background-color: var(--gc-bg);
     min-width: 0;
+    min-height: 0;
+    height: 100%;
     overflow: hidden;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
   }
 
   .gc-week-today {
@@ -514,6 +530,8 @@ export const cardStyles = `
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    min-height: 0;
+    flex: 1;
     overflow: hidden;
   }
 
@@ -552,7 +570,9 @@ export const cardStyles = `
   .gc-day-view-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .gc-day-view-header {
@@ -561,6 +581,7 @@ export const cardStyles = `
     color: var(--gc-text);
     border-bottom: 1px solid var(--gc-border);
     padding-bottom: 8px;
+    flex-shrink: 0;
   }
 
   .gc-day-today-badge {
@@ -618,13 +639,18 @@ export const cardStyles = `
 
   .gc-timeline-container {
     position: relative;
-    height: calc(1200px * var(--gc-row-scale, 1)); /* 24 hours * 50px */
+    flex: 1;
+    min-height: 0;
     border-top: 1px solid var(--gc-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .gc-timeline-hour-row {
     position: relative;
-    height: calc(50px * var(--gc-row-scale, 1));
+    flex: 1;
+    min-height: 0;
     display: flex;
     align-items: flex-start;
   }

@@ -276,12 +276,16 @@ const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 16px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .gc-agenda-day-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-height: 0;
   }
 
   .gc-day-header {
@@ -297,6 +301,8 @@ const cardStyles = `
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex: 1;
+    min-height: 0;
   }
 
   .gc-event-item {
@@ -306,6 +312,7 @@ const cardStyles = `
     padding: 10px 12px;
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
+    min-height: 0;
   }
 
   .gc-event-item:hover {
@@ -562,17 +569,23 @@ const cardStyles = `
   }
 
   .gc-week-container {
-    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
   }
 
   .gc-week-columns {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
     gap: 6px;
     min-width: 500px;
     width: 100%;
+    min-height: 0;
+    height: 100%;
     box-sizing: border-box;
   }
 
@@ -580,11 +593,14 @@ const cardStyles = `
     border: 1px solid var(--gc-border);
     border-radius: 8px;
     padding: 6px;
-    min-height: calc(260px * var(--gc-row-scale, 1));
     background-color: var(--gc-bg);
     min-width: 0;
+    min-height: 0;
+    height: 100%;
     overflow: hidden;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
   }
 
   .gc-week-today {
@@ -624,6 +640,8 @@ const cardStyles = `
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    min-height: 0;
+    flex: 1;
     overflow: hidden;
   }
 
@@ -662,7 +680,9 @@ const cardStyles = `
   .gc-day-view-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .gc-day-view-header {
@@ -671,6 +691,7 @@ const cardStyles = `
     color: var(--gc-text);
     border-bottom: 1px solid var(--gc-border);
     padding-bottom: 8px;
+    flex-shrink: 0;
   }
 
   .gc-day-today-badge {
@@ -728,13 +749,18 @@ const cardStyles = `
 
   .gc-timeline-container {
     position: relative;
-    height: calc(1200px * var(--gc-row-scale, 1)); /* 24 hours * 50px */
+    flex: 1;
+    min-height: 0;
     border-top: 1px solid var(--gc-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .gc-timeline-hour-row {
     position: relative;
-    height: calc(50px * var(--gc-row-scale, 1));
+    flex: 1;
+    min-height: 0;
     display: flex;
     align-items: flex-start;
   }
@@ -1730,8 +1756,9 @@ function renderDayView(events, currentDate = new Date(), options = {}) {
     }
 
     const durationMin = Math.max(30, endMin - startMin); // Minimum 30 mins for readable box
-    const topPx = (startMin / 60) * 50; // Each hour row is 50px high
-    const heightPx = (durationMin / 60) * 50;
+    // Position as a percentage of the 24-hour day so the timeline can flex to fill the card.
+    const topPct = (startMin / 1440) * 100;
+    const heightPct = (durationMin / 1440) * 100;
 
     const bgColor = ev.background_color || "#4285F4";
     const fgColor = ev.foreground_color || "#FFFFFF";
@@ -1742,7 +1769,7 @@ function renderDayView(events, currentDate = new Date(), options = {}) {
     html += `
       <div class="gc-day-timed-event"
            data-event-id="${escapeHtml(ev.id)}"
-           style="top: ${topPx}px; height: ${heightPx}px; background-color: ${bgColor}; color: ${fgColor};">
+           style="top: ${topPct.toFixed(2)}%; height: ${heightPct.toFixed(2)}%; background-color: ${bgColor}; color: ${fgColor};">
         <div class="gc-timed-event-summary">${escapeHtml(ev.summary)}</div>
         <div class="gc-timed-event-time">${timeRangeStr}</div>
         ${ev.location ? `<div class="gc-timed-event-location">${escapeHtml(ev.location)}</div>` : ''}
