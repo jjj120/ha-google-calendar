@@ -116,6 +116,9 @@ function getEventColor(colorId, overrides = {}, fallbackHex = null) {
 const cardStyles = `
   :host {
     display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     --gc-accent: var(--primary-color, #03a9f4);
     --gc-bg: var(--card-background-color, #ffffff);
     --gc-text: var(--primary-text-color, #212121);
@@ -223,6 +226,14 @@ const cardStyles = `
     max-height: none;
     overflow-y: auto;
     flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gc-content > * {
+    flex: 1;
+    min-height: 0;
   }
 
   /* Empty state */
@@ -402,6 +413,8 @@ const cardStyles = `
     flex-direction: column;
     gap: 4px;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
   }
 
@@ -427,13 +440,15 @@ const cardStyles = `
   .gc-month-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(var(--gc-grid-rows, 6), minmax(0, 1fr));
     gap: 4px;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
   }
 
   .gc-month-cell {
-    min-height: 70px;
     border: 1px solid var(--gc-border);
     border-radius: 6px;
     padding: 4px;
@@ -442,6 +457,8 @@ const cardStyles = `
     background-color: var(--gc-bg);
     cursor: pointer;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
     overflow: hidden;
     box-sizing: border-box;
   }
@@ -560,7 +577,7 @@ const cardStyles = `
     border: 1px solid var(--gc-border);
     border-radius: 8px;
     padding: 6px;
-    min-height: 260px;
+    min-height: calc(260px * var(--gc-row-scale, 1));
     background-color: var(--gc-bg);
     min-width: 0;
     overflow: hidden;
@@ -708,13 +725,13 @@ const cardStyles = `
 
   .gc-timeline-container {
     position: relative;
-    height: 1200px; /* 24 hours * 50px */
+    height: calc(1200px * var(--gc-row-scale, 1)); /* 24 hours * 50px */
     border-top: 1px solid var(--gc-border);
   }
 
   .gc-timeline-hour-row {
     position: relative;
-    height: 50px;
+    height: calc(50px * var(--gc-row-scale, 1));
     display: flex;
     align-items: flex-start;
   }
@@ -1376,7 +1393,7 @@ function renderMonthView(events, currentDate = new Date(), options = {}) {
   html += `</div>`;
 
   // 2. Month grid
-  html += `<div class="gc-month-grid">`;
+  html += `<div class="gc-month-grid" style="--gc-grid-rows: ${totalDays / 7};">`;
 
   const iterDate = new Date(startDate);
   for (let dayCount = 0; dayCount < totalDays; dayCount++) {
@@ -1401,7 +1418,7 @@ function renderMonthView(events, currentDate = new Date(), options = {}) {
         <div class="gc-cell-events">
     `;
 
-    const maxVisibleEvents = 3;
+    const maxVisibleEvents = Math.max(3, Math.round(3 * (options.gridScale || 1)));
     const visibleEvents = dayEvents.slice(0, maxVisibleEvents);
     const overflowCount = dayEvents.length - maxVisibleEvents;
 
@@ -2090,20 +2107,16 @@ class GoogleCalendarCard extends HTMLElement {
       ...this._config.grid_options,
     };
 
-    // Calculate zoom from grid_options if specified
-    // Default HA card is 6 cols × 6 rows, each cell ~30px × 56px
-    // This makes the card fill the allocated grid space proportionally
-    const defaultCols = 6;
+    // Compute a vertical scale factor from grid_options.rows.
+    // HA's grid allocates ~56px per row; a default card takes ~6 rows.
+    // If the user requests more rows (e.g. 18), the card is taller and the
+    // views should render more/filler content.
     const defaultRows = 6;
-    const gridCols = this._config.grid_options?.columns;
     const gridRows = this._config.grid_options?.rows;
-    if (gridCols || gridRows) {
-      const colZoom = (gridCols ?? defaultCols) / defaultCols;
-      const rowZoom = (gridRows ?? defaultRows) / defaultRows;
-      this._config._gridZoom = Math.max(colZoom, rowZoom);
-    } else {
-      this._config._gridZoom = 1;
-    }
+    const gridCols = this._config.grid_options?.columns;
+    this._config._gridScale = gridRows ? Math.max(1, gridRows / defaultRows) : 1;
+    // Horizontal span is mostly about layout, but use it to widen the card too.
+    this._config._gridColumns = gridCols || undefined;
 
     if (Array.isArray(this._config.entities)) {
       this._entities = this._config.entities;
@@ -2361,6 +2374,7 @@ class GoogleCalendarCard extends HTMLElement {
         colorStyle: this._config.color_style || "pill",
         locale: locale,
         firstDayOfWeek: 1,
+        gridScale: this._config._gridScale,
       };
 
       if (this._activeView === "month") {
@@ -2428,7 +2442,7 @@ class GoogleCalendarCard extends HTMLElement {
       <style>${cardStyles}</style>
       <ha-card>
         ${headerHtml}
-        <div class="gc-content">
+        <div class="gc-content" style="--gc-row-scale: ${this._config._gridScale};">
           ${contentHtml}
         </div>
         ${modalHtml}

@@ -95,20 +95,16 @@ export class GoogleCalendarCard extends HTMLElement {
       ...this._config.grid_options,
     };
 
-    // Calculate zoom from grid_options if specified
-    // Default HA card is 6 cols × 6 rows, each cell ~30px × 56px
-    // This makes the card fill the allocated grid space proportionally
-    const defaultCols = 6;
+    // Compute a vertical scale factor from grid_options.rows.
+    // HA's grid allocates ~56px per row; a default card takes ~6 rows.
+    // If the user requests more rows (e.g. 18), the card is taller and the
+    // views should render more/filler content.
     const defaultRows = 6;
-    const gridCols = this._config.grid_options?.columns;
     const gridRows = this._config.grid_options?.rows;
-    if (gridCols || gridRows) {
-      const colZoom = (gridCols ?? defaultCols) / defaultCols;
-      const rowZoom = (gridRows ?? defaultRows) / defaultRows;
-      this._config._gridZoom = Math.max(colZoom, rowZoom);
-    } else {
-      this._config._gridZoom = 1;
-    }
+    const gridCols = this._config.grid_options?.columns;
+    this._config._gridScale = gridRows ? Math.max(1, gridRows / defaultRows) : 1;
+    // Horizontal span is mostly about layout, but use it to widen the card too.
+    this._config._gridColumns = gridCols || undefined;
 
     if (Array.isArray(this._config.entities)) {
       this._entities = this._config.entities;
@@ -366,6 +362,7 @@ export class GoogleCalendarCard extends HTMLElement {
         colorStyle: this._config.color_style || "pill",
         locale: locale,
         firstDayOfWeek: 1,
+        gridScale: this._config._gridScale,
       };
 
       if (this._activeView === "month") {
@@ -433,7 +430,7 @@ export class GoogleCalendarCard extends HTMLElement {
       <style>${cardStyles}</style>
       <ha-card>
         ${headerHtml}
-        <div class="gc-content">
+        <div class="gc-content" style="--gc-row-scale: ${this._config._gridScale};">
           ${contentHtml}
         </div>
         ${modalHtml}

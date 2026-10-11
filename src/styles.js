@@ -6,6 +6,9 @@
 export const cardStyles = `
   :host {
     display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     --gc-accent: var(--primary-color, #03a9f4);
     --gc-bg: var(--card-background-color, #ffffff);
     --gc-text: var(--primary-text-color, #212121);
@@ -113,6 +116,14 @@ export const cardStyles = `
     max-height: none;
     overflow-y: auto;
     flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gc-content > * {
+    flex: 1;
+    min-height: 0;
   }
 
   /* Empty state */
@@ -292,6 +303,8 @@ export const cardStyles = `
     flex-direction: column;
     gap: 4px;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
   }
 
@@ -317,13 +330,15 @@ export const cardStyles = `
   .gc-month-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(var(--gc-grid-rows, 6), minmax(0, 1fr));
     gap: 4px;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     box-sizing: border-box;
   }
 
   .gc-month-cell {
-    min-height: 70px;
     border: 1px solid var(--gc-border);
     border-radius: 6px;
     padding: 4px;
@@ -332,6 +347,8 @@ export const cardStyles = `
     background-color: var(--gc-bg);
     cursor: pointer;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
     overflow: hidden;
     box-sizing: border-box;
   }
@@ -450,7 +467,7 @@ export const cardStyles = `
     border: 1px solid var(--gc-border);
     border-radius: 8px;
     padding: 6px;
-    min-height: 260px;
+    min-height: calc(260px * var(--gc-row-scale, 1));
     background-color: var(--gc-bg);
     min-width: 0;
     overflow: hidden;
@@ -598,13 +615,13 @@ export const cardStyles = `
 
   .gc-timeline-container {
     position: relative;
-    height: 1200px; /* 24 hours * 50px */
+    height: calc(1200px * var(--gc-row-scale, 1)); /* 24 hours * 50px */
     border-top: 1px solid var(--gc-border);
   }
 
   .gc-timeline-hour-row {
     position: relative;
-    height: 50px;
+    height: calc(50px * var(--gc-row-scale, 1));
     display: flex;
     align-items: flex-start;
   }

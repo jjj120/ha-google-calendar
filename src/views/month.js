@@ -103,7 +103,7 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
   html += `</div>`;
 
   // 2. Month grid
-  html += `<div class="gc-month-grid">`;
+  html += `<div class="gc-month-grid" style="--gc-grid-rows: ${totalDays / 7};">`;
 
   const iterDate = new Date(startDate);
   for (let dayCount = 0; dayCount < totalDays; dayCount++) {
@@ -128,7 +128,7 @@ export function renderMonthView(events, currentDate = new Date(), options = {}) 
         <div class="gc-cell-events">
     `;
 
-    const maxVisibleEvents = 3;
+    const maxVisibleEvents = Math.max(3, Math.round(3 * (options.gridScale || 1)));
     const visibleEvents = dayEvents.slice(0, maxVisibleEvents);
     const overflowCount = dayEvents.length - maxVisibleEvents;
 
