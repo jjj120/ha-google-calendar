@@ -254,4 +254,6 @@ class GoogleCalendarCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("google-calendar-card-editor", GoogleCalendarCardEditor);
+if (!customElements.get("google-calendar-card-editor")) {
+  customElements.define("google-calendar-card-editor", GoogleCalendarCardEditor);
+}

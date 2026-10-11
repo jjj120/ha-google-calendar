@@ -465,7 +465,9 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-customElements.define("google-calendar-card", GoogleCalendarCard);
+if (!customElements.get("google-calendar-card")) {
+  customElements.define("google-calendar-card", GoogleCalendarCard);
+}
 
 window.customCards = window.customCards || [];
 window.customCards.push({

@@ -1935,7 +1935,9 @@ class GoogleCalendarCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("google-calendar-card-editor", GoogleCalendarCardEditor);
+if (!customElements.get("google-calendar-card-editor")) {
+  customElements.define("google-calendar-card-editor", GoogleCalendarCardEditor);
+}
 
 // --- google-calendar-card.js ---
 /**
@@ -2397,7 +2399,9 @@ class GoogleCalendarCard extends HTMLElement {
 
 
 
-customElements.define("google-calendar-card", GoogleCalendarCard);
+if (!customElements.get("google-calendar-card")) {
+  customElements.define("google-calendar-card", GoogleCalendarCard);
+}
 
 window.customCards = window.customCards || [];
 window.customCards.push({
