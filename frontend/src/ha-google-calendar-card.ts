@@ -277,7 +277,7 @@ class HaGoogleCalendarCard extends HTMLElement {
           const entity = this._hass?.states[entityId];
           const events = await this._hass!.callApi<CalendarEventDict[]>(
             "GET",
-            `/api/calendars/${entityId}?start=${startIso}&end=${endIso}`,
+            `calendars/${entityId}?start=${startIso}&end=${endIso}`,
           );
           for (const event of events) {
             const startDate = parseDate(event.start);
@@ -426,6 +426,24 @@ declare global {
     "ha-google-calendar-card": HaGoogleCalendarCard;
   }
 }
+
+// Register the card metadata so it appears in the dashboard "Add card" picker.
+const _window = window as unknown as {
+  customCards?: {
+    type: string;
+    name: string;
+    description: string;
+  }[];
+};
+const customCards = _window.customCards ?? [];
+if (!customCards.find((card) => card.type === "ha-google-calendar-card")) {
+  customCards.push({
+    type: "ha-google-calendar-card",
+    name: "Google Calendar (per-event colors)",
+    description: "Multiple Google calendars with per-event colors",
+  });
+}
+_window.customCards = customCards;
 
 export { HaGoogleCalendarCard };
 export default HaGoogleCalendarCard;
