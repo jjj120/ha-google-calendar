@@ -27,6 +27,7 @@ export interface CardConfig {
   view?: ViewMode;
   firstDayOfWeek?: "monday" | "sunday";
   monthChipLimit?: number;
+  hideColors?: string[];
 }
 
 interface RankedEvent extends CalendarEventDict {
@@ -39,6 +40,11 @@ interface RankedEvent extends CalendarEventDict {
 interface DayRange {
   startDay: Date;
   lastDay: Date;
+}
+
+interface EntityColorMap {
+  colors: Record<string, string | undefined>;
+  fallback: string | undefined;
 }
 
 function startOfDay(date: Date): Date {
@@ -220,6 +226,7 @@ class HaGoogleCalendarCard extends HTMLElement {
   private _shadow: ShadowRoot;
   private _rootEl!: HTMLElement;
   private _events: RankedEvent[] = [];
+  private _colorMaps: Record<string, EntityColorMap> = {};
   private _loading = false;
   private _error?: string;
   private _sourceKey = "";
@@ -449,17 +456,36 @@ class HaGoogleCalendarCard extends HTMLElement {
             "GET",
             `calendars/${entityId}?start=${startIso}&end=${endIso}`,
           );
+          // Fetch the fresh state so the colour map is consistent with the
+          // events above, instead of racing the websocket state update.
+          let colorMap: Record<string, string | undefined> = {};
+          let fallback: string | undefined;
+          try {
+            const state = await this._hass!.callApi<{
+              attributes?: Record<string, unknown>;
+            }>("GET", `states/${entityId}`);
+            const attrs = state?.attributes ?? {};
+            if (typeof attrs.event_colors === "object" && attrs.event_colors !== null) {
+              colorMap = attrs.event_colors as Record<string, string | undefined>;
+            }
+            if (typeof attrs.calendar_color === "string") fallback = attrs.calendar_color;
+          } catch {
+            // Fall back to the websocket state below.
+          }
+          this._colorMaps[entityId] = { colors: colorMap, fallback };
           for (const event of events) {
             const startDate = parseDate(event.start);
             const endDate = parseDate(event.end);
             if (!startDate || !endDate) continue;
-            results.push({
+            const ranked: RankedEvent = {
               ...event,
               entityId,
               startDate,
               endDate,
               calendarName: String(entity?.attributes?.friendly_name ?? entityId),
-            });
+            };
+            if (this._shouldHide(ranked)) continue;
+            results.push(ranked);
           }
         }),
       );
@@ -744,7 +770,7 @@ class HaGoogleCalendarCard extends HTMLElement {
       .join("");
 
     const lanesBlock = lanesHtml ? `<div class="week-lanes">${lanesHtml}</div>` : "";
-    return `<div class="week">${lanesBlock}<div class="week-days">${dayCellsHtml}</div></div>`;
+    return `<div class="week"><div class="week-days">${dayCellsHtml}</div>${lanesBlock}</div>`;
   }
 
   private _dayDetailHtml(
@@ -777,6 +803,12 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   private _eventColor(event: RankedEvent): string {
+    const map = this._colorMaps[event.entityId];
+    if (map) {
+      const color = event.uid ? map.colors[event.uid] : undefined;
+      if (typeof color === "string") return color;
+      if (typeof map.fallback === "string") return map.fallback;
+    }
     return resolveColor(
       event,
       event.entityId,
@@ -784,6 +816,13 @@ class HaGoogleCalendarCard extends HTMLElement {
       this._config,
       "var(--hgc-accent)",
     );
+  }
+
+  private _shouldHide(event: RankedEvent): boolean {
+    const hide = this._config.hideColors;
+    if (!hide || hide.length === 0) return false;
+    const color = this._eventColor(event).toLowerCase();
+    return hide.some((c) => c.toLowerCase() === color);
   }
 
   private _eventHtml(

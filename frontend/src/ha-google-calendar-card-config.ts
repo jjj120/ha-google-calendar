@@ -42,6 +42,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
     if (this._form) return;
     this._buildForm();
     this._renderColors();
+    this._renderHideColors();
   }
 
   set hass(hass: HomeAssistant) {
@@ -193,6 +194,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
       };
       fireEvent(this, "config-changed", { config: this._config });
       this._renderColors();
+      this._renderHideColors();
     });
 
     this._form = form;
@@ -298,6 +300,77 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
     });
 
     row.append(label, colorInput);
+    return row;
+  }
+
+  private _renderHideColors(): void {
+    const root = this._shadow.querySelector<HTMLElement>(".root");
+    if (!root) return;
+    const heading = this._shadow.querySelector<HTMLElement>(".hide-title");
+    if (heading) heading.remove();
+    const container = this._shadow.querySelector<HTMLElement>(".hide-colors");
+    if (container) container.remove();
+
+    const hideColors = this._config.hideColors ?? [];
+
+    const title = document.createElement("div");
+    title.className = "section-title hide-title";
+    title.textContent = "Hide events by colour";
+    root.appendChild(title);
+
+    const slot = document.createElement("div");
+    slot.className = "hide-colors colors";
+
+    hideColors.forEach((color, index) => {
+      slot.appendChild(this._hideColorRow(color, index));
+    });
+
+    const add = document.createElement("button");
+    add.type = "button";
+    add.textContent = "Add colour";
+    add.addEventListener("click", () => {
+      const next = [...(this._config.hideColors ?? [])];
+      next.push(DEFAULT_PALETTE[next.length % DEFAULT_PALETTE.length]);
+      this._config = { ...this._config, hideColors: next };
+      fireEvent(this, "config-changed", { config: this._config });
+      this._renderHideColors();
+    });
+    slot.appendChild(add);
+
+    root.appendChild(slot);
+  }
+
+  private _hideColorRow(color: string, index: number): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "color-row";
+
+    const name = document.createElement("span");
+    name.className = "color-name";
+    name.textContent = color;
+
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = color;
+    colorInput.addEventListener("input", () => {
+      const next = [...(this._config.hideColors ?? [])];
+      next[index] = colorInput.value;
+      this._config = { ...this._config, hideColors: next };
+      fireEvent(this, "config-changed", { config: this._config });
+      this._renderHideColors();
+    });
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      const next = [...(this._config.hideColors ?? [])];
+      next.splice(index, 1);
+      this._config = { ...this._config, hideColors: next };
+      fireEvent(this, "config-changed", { config: this._config });
+      this._renderHideColors();
+    });
+
+    row.append(name, colorInput, remove);
     return row;
   }
 }
