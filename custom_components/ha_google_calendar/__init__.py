@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 
 from gcal_sync.api import GoogleCalendarService
@@ -50,6 +52,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoogleConfigEntry) -> No
         )
     )
     session = config_entry_oauth2_flow.OAuth2Session(hass, entry, implementation)
+    # Force a token refresh to fix a bug where tokens were persisted with
+    # expires_in (relative time delta) and expires_at (absolute time) swapped.
+    # A google session token typically only lasts a few days between refresh.
+    now = time.time()
+    if session.token.get("expires_at", 0) >= now + timedelta(days=365).total_seconds():
+        session.token["expires_in"] = 0
+        session.token["expires_at"] = now
     await session.async_ensure_token_valid()
 
     calendar_service = GoogleCalendarService(
