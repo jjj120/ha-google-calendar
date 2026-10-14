@@ -73,6 +73,7 @@ class GoogleCalendarEntity(
         )
         self._attr_initial_color = initial_color
 
+    @property
     @override
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes, including the per-event colour map."""
@@ -110,6 +111,7 @@ class GoogleCalendarEntity(
             return True
         return event.transparency == OPAQUE
 
+    @property
     @override
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming event."""
