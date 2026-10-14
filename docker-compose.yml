@@ -8,10 +8,16 @@ services:
     ports:
       - "8123:8123"
     volumes:
-      # Home Assistant configuration (generated on first boot / onboarding).
-      - ./config:/config
+      # Persistent Home Assistant configuration, owned correctly inside the
+      # container (avoids host UID/permission problems). Created on first boot
+      # with onboarding.
+      - ha_config:/config
       # Live-mount the custom integration so backend edits require only a
       # config-entry reload (Settings -> Devices & Services -> reload).
-      - ./custom_components:/config/custom_components
+      # :z relabels for SELinux-enforcing hosts so the HA user can read them.
+      - ./custom_components:/config/custom_components:z
       # Live-mount the built Lovelace card so it is served at /local/...
-      - ./www:/config/www
+      - ./www:/config/www:z
+
+volumes:
+  ha_config:

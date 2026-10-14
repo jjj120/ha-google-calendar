@@ -23,7 +23,7 @@ rendering it with a dedicated card.
 ```
 ha-google-calendar/
 ├─ custom_components/ha_google_calendar/  # backend integration (Python)
-│  ├─ manifest.json                       # domain, requirements (gcal-sync>=9.2.0)
+│  ├─ manifest.json                       # domain, requirements (gcal-sync>=9.1.0)
 │  ├─ __init__.py                         # config entry setup + runtime data
 │  ├─ const.py                            # DOMAIN, attribute/option constants
 │  ├─ api.py                              # OAuth auth impl for gcal_sync
@@ -43,7 +43,8 @@ ha-google-calendar/
 For each event:
 
 1. `event_label_id` → the calendar's `labelProperties.eventLabels` background colour
-   (custom colour labels, `gcal-sync` 9.2+).
+   (custom colour labels; used automatically when `gcal-sync` >= 9.2.0 is installed,
+   otherwise skipped).
 2. `color_id` → Google's event palette via `async_get_colors()`.
 3. `None` → the **calendar's default colour** (exposed as the `calendar_color`
    attribute), then the theme's primary colour in the card.

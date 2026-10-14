@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import oauth2client
 from homeassistant.components.application_credentials import (
+    AuthImplementation,
     AuthorizationServer,
     ClientCredential,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_entry_oauth2_flow
 
 AUTHORIZATION_SERVER = AuthorizationServer(
     oauth2client.GOOGLE_AUTH_URI,
@@ -20,9 +20,9 @@ async def async_get_auth_implementation(
     hass: HomeAssistant,
     auth_domain: str,
     credential: ClientCredential,
-) -> config_entry_oauth2_flow.AbstractOAuth2Implementation:
+) -> AuthImplementation:
     """Return the OAuth implementation for the given credential."""
-    return config_entry_oauth2_flow.LocalOAuth2Implementation(
+    return AuthImplementation(
         hass,
         auth_domain,
         credential,
