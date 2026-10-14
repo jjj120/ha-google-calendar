@@ -59,6 +59,10 @@ class CalendarEventCoordinator(DataUpdateCoordinator[list[Event]]):
         self._lookahead_days = lookahead_days
         # Map of event uid (iCalUID) -> resolved hex colour (or None).
         self.event_colors: dict[str, str | None] = {}
+        # The last window that was served (via async_get_events) so the periodic
+        # refresh reuses the card's active window instead of resetting the colour
+        # map back to the default look-ahead window.
+        self._last_window: tuple[datetime, datetime] | None = None
 
     @property
     def upcoming(self) -> list[Event] | None:
@@ -123,14 +127,18 @@ class CalendarEventCoordinator(DataUpdateCoordinator[list[Event]]):
         self, start_date: datetime, end_date: datetime
     ) -> list[Event]:
         """Return all events in a specific time frame."""
+        self._last_window = (start_date, end_date)
         return await self._async_fetch(start_date, end_date)
 
     @override
     async def _async_update_data(self) -> list[Event]:
-        """Fetch event data for the default look-ahead window."""
-        now = dt_util.now()
-        start = now - timedelta(days=self._lookback_days)
-        end = now + timedelta(days=self._lookahead_days)
+        """Fetch event data for the active window."""
+        if self._last_window:
+            start, end = self._last_window
+        else:
+            now = dt_util.now()
+            start = now - timedelta(days=self._lookback_days)
+            end = now + timedelta(days=self._lookahead_days)
         try:
             return await self._async_fetch(start, end)
         except HomeAssistantError as err:
