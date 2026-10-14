@@ -10,6 +10,12 @@ function iso(offsetMinutes: number): string {
   return new Date(Date.now() + offsetMinutes * 60 * 1000).toISOString();
 }
 
+function day(offsetDays: number): string {
+  return new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 const calendarFamily: HassEntity = {
   entity_id: "calendar.family",
   state: "on",
@@ -38,11 +44,13 @@ const events: Record<string, CalendarEventDict[]> = {
   "calendar.family": [
     { uid: "event-1", summary: "Pick up Alex", start: { dateTime: iso(120) }, end: { dateTime: iso(180) } },
     { uid: "event-2", summary: "Dentist appointment", start: { dateTime: iso(24 * 60 * 60) }, end: { dateTime: iso(24 * 60 * 60 + 60) } },
-    { uid: "event-3", summary: "Family dinner", start: { date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10) }, end: { date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) }, all_day: true },
+    { uid: "event-3", summary: "Family dinner", start: { date: day(2) }, end: { date: day(3) }, all_day: true },
+    { uid: "event-4", summary: "Vacation", start: { date: day(6) }, end: { date: day(9) }, all_day: true },
   ],
   "calendar.work": [
     { uid: "w1", summary: "1:1 with manager", start: { dateTime: iso(300) }, end: { dateTime: iso(360) } },
     { uid: "w2", summary: "Sprint review", start: { dateTime: iso(2 * 24 * 60 * 60) }, end: { dateTime: iso(2 * 24 * 60 * 60 + 90) } },
+    { uid: "w3", summary: "Offsite", start: { date: day(4) }, end: { date: day(5) }, all_day: true },
   ],
 };
 
@@ -69,8 +77,9 @@ const config: CardConfig = {
   type: "custom:ha-google-calendar-card",
   entities: ["calendar.family", "calendar.work"],
   title: "Upcoming events",
-  days: 7,
+  view: "month",
   showCalendarName: true,
+  monthChipLimit: 3,
 };
 
 card.setConfig(config);

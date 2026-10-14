@@ -152,6 +152,32 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
       { name: "showTime", selector: { boolean: {} } },
       { name: "showCalendarName", selector: { boolean: {} } },
       { name: "showEmpty", selector: { boolean: {} } },
+      {
+        name: "view",
+        selector: {
+          select: {
+            options: [
+              { value: "agenda", label: "Agenda list" },
+              { value: "month", label: "Month grid" },
+            ],
+          },
+        },
+      },
+      {
+        name: "firstDayOfWeek",
+        selector: {
+          select: {
+            options: [
+              { value: "monday", label: "Monday" },
+              { value: "sunday", label: "Sunday" },
+            ],
+          },
+        },
+      },
+      {
+        name: "monthChipLimit",
+        selector: { number: { min: 1, max: 10 } },
+      },
     ];
 
     const form = document.createElement("ha-form") as HaFormElement;
@@ -184,6 +210,9 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
       showTime: config.showTime ?? true,
       showCalendarName: config.showCalendarName ?? false,
       showEmpty: config.showEmpty ?? false,
+      view: config.view ?? "agenda",
+      firstDayOfWeek: config.firstDayOfWeek ?? "monday",
+      monthChipLimit: config.monthChipLimit ?? 3,
     };
   }
 
