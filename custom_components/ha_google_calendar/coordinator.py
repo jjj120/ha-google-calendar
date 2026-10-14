@@ -113,13 +113,18 @@ class CalendarEventCoordinator(DataUpdateCoordinator[list[Event]]):
             self.async_set_update_error(err)
             raise HomeAssistantError(str(err)) from err
 
-        self.event_colors = {}
+        # Accumulate colours instead of replacing the map: the card renders
+        # against the entity's event_colors attribute on every state update,
+        # so wiping the map on each fetch would briefly drop known colours and
+        # make entries flicker back to the calendar default colour.
+        new_colors: dict[str, str | None] = {}
         for event in result_items:
             color = resolver.resolve(event)
             if color:
-                self.event_colors[event.ical_uuid or ""] = color
+                new_colors[event.ical_uuid or ""] = color
             elif event.ical_uuid:
-                self.event_colors[event.ical_uuid] = None
+                new_colors[event.ical_uuid] = None
+        self.event_colors.update(new_colors)
         return result_items
 
     @override

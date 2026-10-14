@@ -82,6 +82,12 @@ function formatTime(date: Date): string {
   return `${hour12}:${minutes} ${ampm}`;
 }
 
+function formatTimeShort(date: Date): string {
+  const h = date.getHours();
+  const m = date.getMinutes();
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
+
 function formatDayLabel(date: Date, today: Date, tomorrow: Date): string {
   if (isSameDay(date, today)) return "Today";
   if (isSameDay(date, tomorrow)) return "Tomorrow";
@@ -372,6 +378,9 @@ class HaGoogleCalendarCard extends HTMLElement {
       .chip {
         margin-top: 2px; border-radius: 3px; font-size: 10px; padding: 1px 3px;
         overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #fff;
+      }
+      .chip-time {
+        opacity: 0.85; margin-right: 3px; font-variant-numeric: tabular-nums;
       }
       .more { font-size: 10px; color: var(--secondary-text-color); margin-top: 2px; }
       .day-detail {
@@ -725,7 +734,8 @@ class HaGoogleCalendarCard extends HTMLElement {
                 const color = this._eventColor(e);
                 const textColor = pickTextColor(color);
                 const colorStyle = textColor ? `color:${textColor};` : "";
-                return `<div class="chip" style="background-color:${color};${colorStyle}">${this._escape(e.summary)}</div>`;
+                const time = formatTimeShort(e.startDate);
+                return `<div class="chip" style="background-color:${color};${colorStyle}" title="${this._escape(e.summary)}"><span class="chip-time">${time}</span>${this._escape(e.summary)}</div>`;
               })
               .join("")}
             ${more > 0 ? `<div class="more">+${more} more</div>` : ""}
