@@ -85,10 +85,10 @@ class GoogleCalendarEntity(
         if current is not None:
             uid = current.ical_uuid or ""
             attrs[ATTR_EVENT_COLOR] = self.coordinator.event_colors.get(uid)
-            if current.color_id:
-                attrs[ATTR_EVENT_COLOR_ID] = current.color_id
-            if current.event_label_id:
-                attrs[ATTR_EVENT_LABEL_ID] = current.event_label_id
+            if color_id := getattr(current, "color_id", None):
+                attrs[ATTR_EVENT_COLOR_ID] = color_id
+            if label_id := getattr(current, "event_label_id", None):
+                attrs[ATTR_EVENT_LABEL_ID] = label_id
         return attrs
 
     def _current_event(self) -> Event | None:
@@ -125,9 +125,24 @@ class GoogleCalendarEntity(
     ) -> list[CalendarEvent]:
         """Get all events in a specific time frame."""
         result_items = await self.coordinator.async_get_events(start_date, end_date)
+        # Refresh the extra state attributes (notably the uid -> colour map) so a
+        # frontend card reading them gets the colours for the same window.
+        self.async_write_ha_state()
         return [
             _get_calendar_event(event) for event in result_items if self._visible(event)
         ]
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass, kick off an initial refresh."""
+        await super().async_added_to_hass()
+        # Do not block setup on the network call; refresh in the background so the
+        # event list and colour map are populated as soon as possible.
+        self.coordinator.config_entry.async_create_background_task(
+            self.hass,
+            self.coordinator.async_request_refresh(),
+            "ha_google_calendar.calendar-refresh",
+        )
 
     @override
     async def async_create_event(self, **kwargs: Any) -> None:

@@ -28,7 +28,7 @@ interface RankedEvent extends CalendarEventDict {
   entityId: string;
   startDate: Date;
   endDate: Date;
-  color: string;
+  color?: string;
   calendarName: string;
 }
 
@@ -288,13 +288,6 @@ class HaGoogleCalendarCard extends HTMLElement {
               entityId,
               startDate,
               endDate,
-              color: resolveColor(
-                event,
-                entityId,
-                entity,
-                this._config,
-                "var(--hgc-accent)",
-              ),
               calendarName: String(entity?.attributes?.friendly_name ?? entityId),
             });
           }
@@ -386,6 +379,13 @@ class HaGoogleCalendarCard extends HTMLElement {
     showTime: boolean,
     showCalendar: boolean,
   ): string {
+    const color = resolveColor(
+      event,
+      event.entityId,
+      this._hass?.states[event.entityId],
+      this._config,
+      "var(--hgc-accent)",
+    );
     const time = event.all_day
       ? "All day"
       : `${formatTime(event.startDate)} \u2013 ${formatTime(event.endDate)}`;
@@ -399,7 +399,7 @@ class HaGoogleCalendarCard extends HTMLElement {
       .join("");
     return `
       <div class="event">
-        <div class="bar" style="background-color:${event.color}"></div>
+        <div class="bar" style="background-color:${color}"></div>
         <div class="event-body">
           <div class="event-summary">${this._escape(event.summary)}</div>
           ${meta ? `<div class="event-meta">${meta}</div>` : ""}
