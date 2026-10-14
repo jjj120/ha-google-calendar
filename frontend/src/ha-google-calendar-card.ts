@@ -4,6 +4,7 @@ import type {
   HassEntity,
   HomeAssistant,
 } from "./types";
+import "./ha-google-calendar-card-config";
 
 const DEFAULT_DAYS = 30;
 const DEFAULT_LOOKBACK = 7;
@@ -106,9 +107,6 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   setConfig(config: CardConfig): void {
-    if (!config.entities || config.entities.length === 0) {
-      throw new Error("Please define at least one calendar entity under entities.");
-    }
     this._config = config;
     this._render();
   }
@@ -122,6 +120,24 @@ class HaGoogleCalendarCard extends HTMLElement {
 
   get hass(): HomeAssistant | undefined {
     return this._hass;
+  }
+
+  static getConfigElement(): HTMLElementTagNameMap["ha-google-calendar-card-editor"] {
+    return document.createElement("ha-google-calendar-card-editor");
+  }
+
+  static getStubConfig(): CardConfig {
+    return {
+      type: "custom:ha-google-calendar-card",
+      entities: [],
+      title: "Upcoming events",
+      days: 30,
+      lookback: 7,
+      maxEvents: 100,
+      showTime: true,
+      showCalendarName: false,
+      showEmpty: false,
+    };
   }
 
   getCardSize(): number {
@@ -303,6 +319,10 @@ class HaGoogleCalendarCard extends HTMLElement {
     const config = this._config;
     if (!config) {
       root.innerHTML = `<div class="error">Google Calendar card: configuration missing.</div>`;
+      return;
+    }
+    if (!config.entities || config.entities.length === 0) {
+      root.innerHTML = `<div class="empty">Select at least one calendar entity in the card settings.</div>`;
       return;
     }
     if (this._error) {

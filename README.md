@@ -96,7 +96,11 @@ npm run build      # writes ../www/ha-google-calendar-card.js
 
 1. Add a frontend resource: Settings → Dashboards → **Resources** → Add →
    `/local/ha-google-calendar-card.js`.
-2. Add the card to a dashboard:
+2. Add the card to a dashboard. The card ships a **GUI editor**: in the dashboard
+   editor, click the card then **⋮ → Edit**, or open the *Add card* picker and
+   choose *Google Calendar (per-event colors)* — you can pick the calendars, title,
+   window, toggles and per-calendar colour overrides without writing YAML.
+3. Or configure it in YAML:
 
 ```yaml
 type: custom:ha-google-calendar-card
