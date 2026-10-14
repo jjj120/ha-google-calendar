@@ -108,20 +108,32 @@ entities:
   - calendar.family
   - calendar.work
 title: Upcoming events
-days: 30          # look-ahead window (must be >= the integration window) 
-lookback: 7       # include events already started
+view: agenda       # "agenda" (default) or "month"
+days: 30           # agenda: look-ahead window; for "month" it is ignored
+lookback: 7        # agenda: include events already started
 maxEvents: 100
 showTime: true
 showCalendarName: true
-colors:           # optional per-calendar overrides
+colors:            # optional per-calendar overrides
   calendar.work: "#7986cb"
+firstDayOfWeek: monday   # "monday" | "sunday"; default from browser locale
+monthChipLimit: 3        # max timed-event chips per day cell in month view
 ```
 
 The card fetches events over the REST `/api/calendars/<entity>` endpoint (which
 includes `uid`), then joins each event's `uid` against the entity's `event_colors`
 map. It falls back to the calendar default colour, then the theme accent.
 
-> Tip: the card's `days`/`lookback` window should not exceed the window the
+### Views
+
+- **Agenda** — upcoming events grouped by day, each a coloured row.
+- **Month** — a month grid with weekday headers, navigation (‹ today ›), today
+  highlighted. All-day / multi-day events render as **spanning bars** across their
+  days (with continuations at week edges); single-day timed events are compact
+  coloured chips (capped by `monthChipLimit`). **Click any day** to show that day's
+  events in a detail list below the grid.
+
+> Tip (agenda): the card's `days`/`lookback` window should not exceed the window the
 > integration polls (`event_colors` only covers that window). Defaults (30/7) match.
 
 ## Local testing with Docker
