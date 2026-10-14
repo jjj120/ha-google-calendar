@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Home Assistant local config (docker mount)
+config/
+www/*.js
+!www/*.example.js
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

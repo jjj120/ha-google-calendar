@@ -1,0 +1,21 @@
+{
+  "domain": "ha_google_calendar",
+  "name": "Google Calendar (per-event colors)",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [
+    "application_credentials",
+    "http"
+  ],
+  "documentation": "https://github.com/example/ha-google-calendar",
+  "issue_tracker": "https://github.com/example/ha-google-calendar/issues",
+  "iot_class": "cloud_polling",
+  "loggers": [
+    "gcal_sync",
+    "ha_google_calendar"
+  ],
+  "requirements": [
+    "gcal-sync>=9.2.0"
+  ],
+  "version": "0.1.0"
+}
