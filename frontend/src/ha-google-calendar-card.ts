@@ -108,6 +108,31 @@ function localeWeekStartIndex(config: CardConfig): number {
   return 1;
 }
 
+function pickTextColor(bg: string): string | null {
+  // Only hex colours can be inspected here; unknown values (e.g. var(--...))
+  // keep the CSS default (#fff).
+  const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.exec(bg);
+  if (!match) return null;
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance =
+    0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+  return luminance > 0.5 ? "#000000" : "#ffffff";
+}
+
+function linearize(channel: number): number {
+  const c = channel / 255;
+  return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
 function resolveColor(
   event: CalendarEventDict,
   entityId: string,
@@ -660,11 +685,13 @@ class HaGoogleCalendarCard extends HTMLElement {
             ${lane
               .map((bar) => {
                 const color = this._eventColor(bar.event);
+                const textColor = pickTextColor(color);
                 const startCol = bar.colStart + 1;
                 const endCol = bar.colEnd + 1;
                 const contRight = bar.endsAfter ? `<span class="cont">\u203a</span>` : "";
                 const contLeft = bar.startsBefore ? `<span class="cont-l">\u2039</span>` : "";
-                return `<div class="ms-bar" style="--col:${startCol} / ${endCol};background-color:${color}" data-day="${dayKey(bar.event.startDate)}">${contLeft}${this._escape(bar.event.summary)}${contRight}</div>`;
+                const colorStyle = textColor ? `color:${textColor};` : "";
+                return `<div class="ms-bar" style="--col:${startCol} / ${endCol};background-color:${color};${colorStyle}" data-day="${dayKey(bar.event.startDate)}">${contLeft}${this._escape(bar.event.summary)}${contRight}</div>`;
               })
               .join("")}
           </div>`,
@@ -696,7 +723,9 @@ class HaGoogleCalendarCard extends HTMLElement {
             ${chips
               .map((e) => {
                 const color = this._eventColor(e);
-                return `<div class="chip" style="background-color:${color}">${this._escape(e.summary)}</div>`;
+                const textColor = pickTextColor(color);
+                const colorStyle = textColor ? `color:${textColor};` : "";
+                return `<div class="chip" style="background-color:${color};${colorStyle}">${this._escape(e.summary)}</div>`;
               })
               .join("")}
             ${more > 0 ? `<div class="more">+${more} more</div>` : ""}
