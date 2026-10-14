@@ -1,0 +1,21 @@
+{
+  "name": "ha-google-calendar-card",
+  "version": "0.1.0",
+  "description": "Home Assistant Lovelace card with Google Calendar per-event colors",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}

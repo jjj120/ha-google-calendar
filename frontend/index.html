@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ha-google-calendar-card — dev preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1c1c28;
+        font-family: system-ui, sans-serif;
+      }
+      #app {
+        height: 100%;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .grow {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="grow" style="display: grid; grid-template-rows: 100%;">
+        <ha-google-calendar-card></ha-google-calendar-card>
+      </div>
+    </div>
+    <script type="module" src="/src/demo/main.ts"></script>
+  </body>
+</html>

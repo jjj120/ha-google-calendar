@@ -12,7 +12,6 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-
 from gcal_sync.model import (
     CalendarBasic,
     ColorDefinition,
@@ -29,7 +28,9 @@ _COLORS_PATH = (
     / "ha_google_calendar"
     / "colors.py"
 )
-_SPEC = importlib.util.spec_from_file_location("ha_google_calendar_colors", _COLORS_PATH)
+_SPEC = importlib.util.spec_from_file_location(
+    "ha_google_calendar_colors", _COLORS_PATH
+)
 assert _SPEC and _SPEC.loader
 _COLORS_MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_COLORS_MODULE)
