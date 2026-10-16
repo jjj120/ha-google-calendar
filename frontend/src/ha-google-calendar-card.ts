@@ -438,7 +438,7 @@ class HaGoogleCalendarCard extends HTMLElement {
       }
       .ms-seg {
         position: relative; margin: 1px -3px 1px; padding: 0 4px;
-        font-size: 11px; line-height: 14px; color: #fff;
+        font-size: 11px; line-height: 14px; min-height: 14px; color: #fff;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         cursor: pointer;
       }
