@@ -185,7 +185,7 @@ function eventDayRange(event: RankedEvent): DayRange {
 
 function spansMultipleDays(event: RankedEvent): boolean {
   const range = eventDayRange(event);
-  return event.all_day || range.lastDay.getTime() > range.startDay.getTime();
+  return range.lastDay.getTime() > range.startDay.getTime();
 }
 
 function monthCells(anchor: Date, firstIdx: number): Date[] {
@@ -548,12 +548,18 @@ class HaGoogleCalendarCard extends HTMLElement {
             const startDate = parseDate(event.start);
             const endDate = parseDate(event.end);
             if (!startDate || !endDate) continue;
+            // All-day events are serialised by HA with start/end as {"date": ...}
+            // (no dateTime). The event dict carries no explicit all_day flag, so
+            // infer it here; single-day all-day events become chips (no time)
+            // while multi-day ones are rendered as spanning bars.
+            const isAllDay = Boolean(event.start && event.start.date && !event.start.dateTime);
             const ranked: RankedEvent = {
               ...event,
               entityId,
               startDate,
               endDate,
               calendarName: String(entity?.attributes?.friendly_name ?? entityId),
+              all_day: isAllDay,
             };
             if (this._shouldHide(ranked)) continue;
             results.push(ranked);
@@ -801,9 +807,14 @@ class HaGoogleCalendarCard extends HTMLElement {
         const key = dayKey(date);
         const inMonth = date.getMonth() === anchorMonth;
         const events = eventsByDay.get(key) ?? [];
+        // All-day, non-spanning events sort first so they appear at the top of
+        // the cell; timed events follow chronologically.
         const timed = events
           .filter((e) => !spansMultipleDays(e))
-          .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+          .sort((a, b) => {
+            if (a.all_day !== b.all_day) return a.all_day ? -1 : 1;
+            return a.startDate.getTime() - b.startDate.getTime();
+          });
 
         // Segments of multi-day events covering this column, in lane order.
         const segs = deduped
@@ -839,8 +850,10 @@ class HaGoogleCalendarCard extends HTMLElement {
                 const color = this._eventColor(e);
                 const textColor = pickTextColor(color);
                 const colorStyle = textColor ? `color:${textColor};` : "";
-                const time = formatTimeShort(e.startDate);
-                return `<div class="chip" style="background-color:${color};${colorStyle}" title="${this._escape(e.summary)}"><span class="chip-time">${time}</span>${this._escape(e.summary)}</div>`;
+                const chipTime = e.all_day
+                  ? ""
+                  : `<span class="chip-time">${formatTimeShort(e.startDate)}</span>`;
+                return `<div class="chip" style="background-color:${color};${colorStyle}" title="${this._escape(e.summary)}">${chipTime}${this._escape(e.summary)}</div>`;
               })
               .join("")}
             ${more > 0 ? `<div class="more">+${more} more</div>` : ""}
