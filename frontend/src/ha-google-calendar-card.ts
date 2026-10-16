@@ -326,12 +326,22 @@ class HaGoogleCalendarCard extends HTMLElement {
     if (this._config?.view !== "month") return;
     const cell = this._rootEl.querySelector<HTMLElement>(".day-cell");
     if (!cell) return;
-    const height = cell.clientHeight;
-    const headerSpace = 20; // day number + cell padding
-    const chipHeight = 16; // chip line height incl. margin
+    const cellH = cell.clientHeight;
+    let fit: number;
+    const chip = this._rootEl.querySelector<HTMLElement>(".chip");
+    const dayNum = this._rootEl.querySelector<HTMLElement>(".day-num");
+    if (chip && dayNum) {
+      // Measure the real geometry so the fit adapts to the theme/font.
+      const chipRowH = chip.offsetHeight + 2; // own height + top margin
+      const avail = cellH - dayNum.offsetHeight - 4 - 2 - 14; // padding + note row
+      fit = Math.max(1, Math.floor(avail / chipRowH));
+    } else {
+      const headerSpace = 20; // day number + cell padding
+      const chipHeight = 16; // fallback chip line height
+      fit = Math.max(1, Math.floor((cellH - headerSpace) / chipHeight));
+    }
     // Show exactly as many chips as fit in the cell; any that don't fit are
     // reported via the "+N more" note rather than being clipped silently.
-    const fit = Math.max(1, Math.floor((height - headerSpace) / chipHeight));
     if (fit !== this._chipLimit) {
       this._chipLimit = fit;
       this._render();
