@@ -7,7 +7,6 @@ colour so the entity can expose a per-event colour map.
 
 from __future__ import annotations
 
-import asyncio
 import itertools
 import logging
 from datetime import datetime, timedelta
@@ -15,7 +14,7 @@ from typing import override
 
 from gcal_sync.api import GoogleCalendarService, ListEventsRequest
 from gcal_sync.exceptions import ApiException
-from gcal_sync.model import Colors, Event
+from gcal_sync.model import Event
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -71,24 +70,8 @@ class CalendarEventCoordinator(DataUpdateCoordinator[list[Event]]):
             return None
         return list(itertools.islice((e for e in self.data), MAX_UPCOMING_EVENTS))
 
-    async def _async_get_palette(self) -> Colors | None:
-        """Return the shared event colour palette from runtime data."""
-        runtime = self.config_entry.runtime_data
-        if runtime.colors is None:
-            if runtime.color_lock is None:
-                runtime.color_lock = asyncio.Lock()
-            async with runtime.color_lock:
-                if runtime.colors is None:
-                    try:
-                        runtime.colors = await self.service.async_get_colors()
-                    except ApiException:
-                        _LOGGER.debug("Failed to fetch colour palette", exc_info=True)
-                        runtime.colors = Colors()
-        return runtime.colors
-
     async def _async_fetch(self, start: datetime, end: datetime) -> list[Event]:
         """Fetch events in the window and refresh the colour map."""
-        palette = await self._async_get_palette()
         try:
             calendar = await self.service.async_get_calendar(self.calendar_id)
         except ApiException:
@@ -96,7 +79,7 @@ class CalendarEventCoordinator(DataUpdateCoordinator[list[Event]]):
             labels: dict[str, str] = {}
         else:
             labels = event_labels_to_map(calendar)
-        resolver = ColorResolver(palette, labels)
+        resolver = ColorResolver(labels=labels)
 
         request = ListEventsRequest(
             calendar_id=self.calendar_id,

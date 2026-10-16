@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
 
 from gcal_sync.api import GoogleCalendarService
 from homeassistant.config_entries import ConfigEntry
@@ -36,8 +34,6 @@ class GoogleRuntimeData:
     service: GoogleCalendarService
     lookback_days: int
     lookahead_days: int
-    colors: Any = None  # gcal_sync.model.Colors
-    color_lock: asyncio.Lock | None = field(default=None)
 
 
 type GoogleConfigEntry = ConfigEntry[GoogleRuntimeData]

@@ -35,6 +35,7 @@ assert _SPEC and _SPEC.loader
 _COLORS_MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_COLORS_MODULE)
 ColorResolver = _COLORS_MODULE.ColorResolver
+EVENT_COLOR_HEX = _COLORS_MODULE.EVENT_COLOR_HEX
 event_labels_to_map = _COLORS_MODULE.event_labels_to_map
 
 
@@ -45,16 +46,6 @@ def _event(color_id: str | None = None, label_id: str | None = None) -> Event:
         end=DateOrDatetime(date=date(2026, 1, 2)),
         color_id=color_id,
         event_label_id=label_id,
-    )
-
-
-def _palette() -> Colors:
-    """Return a small event palette."""
-    return Colors(
-        event={
-            "1": ColorDefinition(background="#039be5", foreground="#ffffff"),
-            "2": ColorDefinition(background="#7986cb", foreground="#ffffff"),
-        }
     )
 
 
@@ -80,51 +71,49 @@ def test_labels_to_map_empty() -> None:
     assert event_labels_to_map(CalendarBasic(id="cal")) == {}
 
 
+@pytest.mark.parametrize(
+    ("color_id", "expected"),
+    [
+        ("1", "#7986cb"),  # Lavender
+        ("2", "#33b679"),  # Sage
+        ("3", "#8e24aa"),  # Grape
+        ("4", "#e67c73"),  # Flamingo
+        ("5", "#f6bf26"),  # Banana
+        ("6", "#f4511e"),  # Tangerine
+        ("7", "#039be5"),  # Peacock
+        ("8", "#616161"),  # Graphite
+        ("9", "#3f51b5"),  # Blueberry
+        ("10", "#0b8043"),  # Basil
+        ("11", "#d50000"),  # Tomato
+    ],
+)
+def test_resolve_builtin_event_colors(color_id: str, expected: str) -> None:
+    """Each built-in event colour id resolves to its official hex value."""
+    assert ColorResolver().resolve(_event(color_id=color_id)) == expected
+
+
 def test_resolve_uses_label_first() -> None:
-    """Custom label colour wins over the legacy palette."""
-    resolver = ColorResolver(
-        palette=_palette(),
-        labels={"label-1": "#7c54c0"},
-    )
-    assert resolver.resolve(_event(color_id="1", label_id="label-1")) == "#7c54c0"
+    """Custom label colour wins over the built-in palette."""
+    resolver = ColorResolver(labels={"label-1": "#7c54c0"})
+    assert resolver.resolve(_event(color_id="11", label_id="label-1")) == "#7c54c0"
 
 
-def test_resolve_falls_back_to_palette() -> None:
-    """Events without a custom label resolve via the legacy palette."""
-    resolver = ColorResolver(palette=_palette())
-    assert resolver.resolve(_event(color_id="2")) == "#7986cb"
-
-
-def test_resolve_missing_label_falls_back_to_palette() -> None:
-    """An unknown label id falls back to the palette rather than erroring."""
-    resolver = ColorResolver(
-        palette=_palette(),
-        labels={"label-1": "#7c54c0"},
-    )
-    assert resolver.resolve(_event(color_id="1", label_id="missing")) == "#039be5"
+def test_resolve_missing_label_falls_back_to_builtin() -> None:
+    """An unknown label id falls back to the built-in palette."""
+    resolver = ColorResolver(labels={"label-1": "#7c54c0"})
+    assert resolver.resolve(_event(color_id="1", label_id="missing")) == "#7986cb"
 
 
 def test_resolve_no_color() -> None:
     """Events without any colour resolve to None (use calendar default)."""
-    assert ColorResolver(palette=_palette()).resolve(_event()) is None
+    assert ColorResolver().resolve(_event()) is None
 
 
-def test_resolve_no_data() -> None:
-    """A resolver with no palette/labels returns None."""
-    assert ColorResolver().resolve(_event(color_id="1")) is None
+def test_resolve_unknown_color_id() -> None:
+    """An unknown colour id resolves to None rather than erroring."""
+    assert ColorResolver().resolve(_event(color_id="99")) is None
 
 
-@pytest.mark.parametrize(
-    ("event", "expected"),
-    [
-        (_event(color_id="1"), "#039be5"),
-        (_event(color_id="1", label_id="label-1"), "#7c54c0"),
-    ],
-)
-def test_resolve_parametrized(event: Event, expected: str) -> None:
-    """Parametrized resolution cases."""
-    resolver = ColorResolver(
-        palette=_palette(),
-        labels={"label-1": "#7c54c0"},
-    )
-    assert resolver.resolve(event) == expected
+def test_canonical_map_covers_all_ids() -> None:
+    """The canonical event colour map contains exactly the 11 built-in ids."""
+    assert set(EVENT_COLOR_HEX.keys()) == {str(i) for i in range(1, 12)}
