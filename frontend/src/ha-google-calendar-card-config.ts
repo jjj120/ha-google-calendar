@@ -177,6 +177,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
       },
       {
         name: "monthChipLimit",
+        label: "Minimum events per day (month view)",
         selector: { number: { min: 1, max: 50 } },
       },
     ];
@@ -214,7 +215,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
       showEmpty: config.showEmpty ?? false,
       view: config.view ?? "agenda",
       firstDayOfWeek: config.firstDayOfWeek ?? "monday",
-      monthChipLimit: config.monthChipLimit ?? 30,
+      monthChipLimit: config.monthChipLimit ?? 1,
     };
   }
 
