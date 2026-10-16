@@ -300,8 +300,8 @@ class HaGoogleCalendarCard extends HTMLElement {
       return {
         rows,
         columns: 3,
-        min_columns: 2,
-        max_columns: 6,
+        min_columns: 1,
+        max_columns: 12,
         min_rows: 2,
         max_rows: 24,
         default_columns: 3,
@@ -311,8 +311,8 @@ class HaGoogleCalendarCard extends HTMLElement {
     return {
       rows: 4,
       columns: 3,
-      min_columns: 2,
-      max_columns: 6,
+      min_columns: 1,
+      max_columns: 12,
       min_rows: 1,
       max_rows: 24,
       default_columns: 3,
