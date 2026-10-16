@@ -476,6 +476,7 @@ class HaGoogleCalendarCard extends HTMLElement {
       }
       .day-cell:hover { background-color: rgba(128,128,128,0.08); }
       .day-cell.out-month { opacity: 0.4; }
+      .day-cell.past { opacity: 0.5; }
       .day-cell.selected { background-color: rgba(128,128,128,0.12); }
       .day-num { font-size: 12px; color: var(--secondary-text-color); }
       .day-cell.today .day-num { color: var(--primary-color); font-weight: 700; }
@@ -795,6 +796,7 @@ class HaGoogleCalendarCard extends HTMLElement {
   ): string {
     const anchorMonth = this._monthAnchor.getMonth();
     const todayKey = dayKey(new Date());
+    const todayStart = startOfDay(new Date());
 
     // Spanning (all-day / multi-day) events overlapping this week.
     const spanning: SpanningBar[] = [];
@@ -869,6 +871,7 @@ class HaGoogleCalendarCard extends HTMLElement {
           "day-cell",
           inMonth ? "" : "out-month",
           key === todayKey ? "today" : "",
+          date.getTime() < todayStart.getTime() ? "past" : "",
           key === this._selectedDayKey ? "selected" : "",
         ]
           .filter(Boolean)
