@@ -2,15 +2,21 @@ import type { CardConfig } from "./ha-google-calendar-card";
 import type { HomeAssistant } from "./types";
 
 const ENTITY_DOMAIN = "calendar";
-const DEFAULT_PALETTE = [
-  "#039be5",
-  "#7986cb",
-  "#33b679",
-  "#8e24aa",
-  "#e67c73",
-  "#f6bf26",
-  "#f4511e",
-  "#616161",
+
+// The canonical current Google Calendar event colours (id / name / hex), used
+// both as the default fallback palette and the pickable "hide by colour" set.
+const GOOGLE_COLORS = [
+  { name: "Lavender", hex: "#7986CB" },
+  { name: "Sage", hex: "#33B679" },
+  { name: "Grape", hex: "#8E24AA" },
+  { name: "Flamingo", hex: "#E67C73" },
+  { name: "Banana", hex: "#F6BF26" },
+  { name: "Tangerine", hex: "#F4511E" },
+  { name: "Peacock", hex: "#039BE5" },
+  { name: "Graphite", hex: "#616161" },
+  { name: "Blueberry", hex: "#3F51B5" },
+  { name: "Basil", hex: "#0B8043" },
+  { name: "Tomato", hex: "#D50000" },
 ];
 
 function fireEvent(element: HTMLElement, type: string, detail: unknown): void {
@@ -98,6 +104,35 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 13px;
+      }
+      .hide-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .hide-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: none;
+        border: 1px solid var(--divider-color, #888);
+        color: var(--primary-text-color, inherit);
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 12px;
+        opacity: 0.65;
+      }
+      .hide-chip.active {
+        opacity: 1;
+        border-color: var(--primary-color, #03a9f4);
+      }
+      .hide-chip-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        display: inline-block;
+        flex: 0 0 auto;
       }
       input[type="color"] {
         width: 40px;
@@ -262,7 +297,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
     row.className = "color-row";
 
     const has = entityId in colors;
-    const value = colors[entityId] ?? DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
+    const value = colors[entityId] ?? GOOGLE_COLORS[index % GOOGLE_COLORS.length].hex;
 
     const label = document.createElement("label");
     const checkbox = document.createElement("input");
@@ -322,7 +357,43 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
     const slot = document.createElement("div");
     slot.className = "hide-colors colors";
 
+    // A grid of the canonical Google colours: click a swatch to toggle whether
+    // events of that colour are hidden.
+    const grid = document.createElement("div");
+    grid.className = "hide-grid";
+    GOOGLE_COLORS.forEach(({ name, hex }) => {
+      const active = hideColors.some(
+        (c) => c.toLowerCase() === hex.toLowerCase(),
+      );
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = active ? "hide-chip active" : "hide-chip";
+      chip.dataset.hex = hex;
+      const dot = document.createElement("span");
+      dot.className = "hide-chip-dot";
+      dot.style.backgroundColor = hex;
+      const label = document.createElement("span");
+      label.textContent = name;
+      chip.append(dot, label);
+      chip.addEventListener("click", () => {
+        const next = [...(this._config.hideColors ?? [])];
+        const existing = next.findIndex(
+          (c) => c.toLowerCase() === hex.toLowerCase(),
+        );
+        if (existing >= 0) next.splice(existing, 1);
+        else next.push(hex);
+        this._config = { ...this._config, hideColors: next };
+        fireEvent(this, "config-changed", { config: this._config });
+        this._renderHideColors();
+      });
+      grid.appendChild(chip);
+    });
+    slot.appendChild(grid);
+
+    // Custom colours already in the list that aren't part of the canonical set.
     hideColors.forEach((color, index) => {
+      if (GOOGLE_COLORS.some((c) => c.hex.toLowerCase() === color.toLowerCase()))
+        return;
       slot.appendChild(this._hideColorRow(color, index));
     });
 
@@ -331,7 +402,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
     add.textContent = "Add colour";
     add.addEventListener("click", () => {
       const next = [...(this._config.hideColors ?? [])];
-      next.push(DEFAULT_PALETTE[next.length % DEFAULT_PALETTE.length]);
+      next.push(GOOGLE_COLORS[next.length % GOOGLE_COLORS.length].hex);
       this._config = { ...this._config, hideColors: next };
       fireEvent(this, "config-changed", { config: this._config });
       this._renderHideColors();
