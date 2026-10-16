@@ -241,7 +241,14 @@ class HaGoogleCalendarCard extends HTMLElement {
   private _sourceKey = "";
   private _refreshTimer?: number;
   private _resizeObserver?: ResizeObserver;
-  private _chipLimit = 3;
+  // Measured month-cell geometry (updated after each layout via ResizeObserver /
+  // requestAnimationFrame). Used to compute the per-day chip fit, accounting for
+  // the vertical space taken up by the multi-day bars inside each cell.
+  private _cellH = 160;
+  private _chipRowH = 14;
+  private _dayNumH = 20;
+  private _segRowH = 15;
+  private _noteH = 16;
   private _monthAnchor = new Date();
   private _selectedDayKey: string | null = null;
 
@@ -309,7 +316,7 @@ class HaGoogleCalendarCard extends HTMLElement {
 
   connectedCallback(): void {
     if (!this._resizeObserver) {
-      this._resizeObserver = new ResizeObserver(() => this._refreshChipLimit());
+      this._resizeObserver = new ResizeObserver(() => this._measureGeometry());
       this._resizeObserver.observe(this);
     }
   }
@@ -322,30 +329,31 @@ class HaGoogleCalendarCard extends HTMLElement {
     }
   }
 
-  private _refreshChipLimit(): void {
+  private _measureGeometry(): void {
     if (this._config?.view !== "month") return;
     const cell = this._rootEl.querySelector<HTMLElement>(".day-cell");
     if (!cell) return;
-    const cellH = cell.clientHeight;
-    let fit: number;
     const chip = this._rootEl.querySelector<HTMLElement>(".chip");
     const dayNum = this._rootEl.querySelector<HTMLElement>(".day-num");
-    if (chip && dayNum) {
-      // Measure the real geometry so the fit adapts to the theme/font.
-      const chipRowH = chip.offsetHeight + 2; // own height + top margin
-      const avail = cellH - dayNum.offsetHeight - 4 - 2 - 14; // padding + note row
-      fit = Math.max(1, Math.floor(avail / chipRowH));
-    } else {
-      const headerSpace = 20; // day number + cell padding
-      const chipHeight = 16; // fallback chip line height
-      fit = Math.max(1, Math.floor((cellH - headerSpace) / chipHeight));
+    if (!chip || !dayNum) return;
+    const seg = this._rootEl.querySelector<HTMLElement>(".ms-seg");
+    const cellH = cell.clientHeight;
+    const chipRowH = chip.offsetHeight + 2;
+    const dayNumH = dayNum.offsetHeight;
+    const segRowH = seg ? seg.offsetHeight + 1 : 0;
+    if (
+      cellH === this._cellH &&
+      chipRowH === this._chipRowH &&
+      dayNumH === this._dayNumH &&
+      segRowH === this._segRowH
+    ) {
+      return;
     }
-    // Show exactly as many chips as fit in the cell; any that don't fit are
-    // reported via the "+N more" note rather than being clipped silently.
-    if (fit !== this._chipLimit) {
-      this._chipLimit = fit;
-      this._render();
-    }
+    this._cellH = cellH;
+    this._chipRowH = chipRowH;
+    this._dayNumH = dayNumH;
+    this._segRowH = segRowH;
+    this._render();
   }
 
   private _firstDayIndex(): number {
@@ -424,22 +432,18 @@ class HaGoogleCalendarCard extends HTMLElement {
         margin-bottom: 4px; flex: 1 1 0; min-height: 0;
         display: flex; flex-direction: column;
       }
-      .week-lanes { display: flex; flex-direction: column; gap: 1px; }
-      .lane { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; min-height: 14px; }
-      .ms-bar {
-        position: relative; grid-column: var(--col); border-radius: 3px; color: #fff;
-        font-size: 11px; overflow: hidden; white-space: nowrap; padding: 0 4px;
-        line-height: 14px; cursor: pointer; text-overflow: ellipsis;
-      }
-      .ms-bar::before {
-        content: ""; position: absolute; top: 0; bottom: 0; width: 3px; left: 0;
-      }
-      .cont { position: absolute; right: 0; top: 0; bottom: 0; padding: 0 2px; opacity: 0.9; }
-      .cont-l { position: absolute; left: 0; top: 0; bottom: 0; padding: 0 2px; opacity: 0.9; }
       .week-days {
         display: grid; grid-template-columns: repeat(7, 1fr);
         grid-template-rows: 1fr; flex: 1 1 auto; min-height: 0;
       }
+      .ms-seg {
+        position: relative; margin: 1px -3px 1px; padding: 0 4px;
+        font-size: 11px; line-height: 14px; color: #fff;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        cursor: pointer;
+      }
+      .cont { position: absolute; right: 0; top: 0; bottom: 0; padding: 0 2px; opacity: 0.9; }
+      .cont-l { position: absolute; left: 0; top: 0; bottom: 0; padding: 0 2px; opacity: 0.9; }
       .day-cell {
         min-height: 52px; border-top: 1px solid var(--divider-color, rgba(128,128,128,0.25));
         padding: 2px 3px; cursor: pointer; overflow: hidden;
@@ -636,7 +640,7 @@ class HaGoogleCalendarCard extends HTMLElement {
     }
     // Measure the day-cell row height after layout and adjust the per-day chip
     // limit so more events are shown when the calendar is taller.
-    window.requestAnimationFrame(() => this._refreshChipLimit());
+    window.requestAnimationFrame(() => this._measureGeometry());
   }
 
   private _renderAgenda(root: HTMLElement, config: CardConfig): void {
@@ -782,38 +786,42 @@ class HaGoogleCalendarCard extends HTMLElement {
       deduped.push(bar);
     }
 
+    // Assign each bar a lane so a multi-day event stays on the same row across
+    // every day it covers. Within a given day cell the segments are rendered in
+    // lane order, keeping the bars continuous (same lane) and low (below the
+    // day number, above the timed chips).
     const lanes = layoutLanes(deduped);
-    const lanesHtml = lanes
-      .map(
-        (lane) => `
-          <div class="lane">
-            ${lane
-              .map((bar) => {
-                const color = this._eventColor(bar.event);
-                const textColor = pickTextColor(color);
-                const startCol = bar.colStart + 1;
-                const endCol = bar.colEnd + 1;
-                const contRight = bar.endsAfter ? `<span class="cont">\u203a</span>` : "";
-                const contLeft = bar.startsBefore ? `<span class="cont-l">\u2039</span>` : "";
-                const colorStyle = textColor ? `color:${textColor};` : "";
-                return `<div class="ms-bar" style="--col:${startCol} / ${endCol};background-color:${color};${colorStyle}" data-day="${dayKey(bar.event.startDate)}">${contLeft}${this._escape(bar.event.summary)}${contRight}</div>`;
-              })
-              .join("")}
-          </div>`,
-      )
-      .join("");
+    const barLane = new Map<SpanningBar, number>();
+    lanes.forEach((lane, idx) => {
+      for (const bar of lane) barLane.set(bar, idx);
+    });
 
     const dayCellsHtml = weekDates
-      .map((date) => {
+      .map((date, c) => {
         const key = dayKey(date);
         const inMonth = date.getMonth() === anchorMonth;
         const events = eventsByDay.get(key) ?? [];
         const timed = events
           .filter((e) => !spansMultipleDays(e))
           .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-        const chipLimit = this._chipLimit;
+
+        // Segments of multi-day events covering this column, in lane order.
+        const segs = deduped
+          .filter((bar) => bar.colStart <= c && c < bar.colEnd)
+          .sort((a, b) => (barLane.get(a) ?? 0) - (barLane.get(b) ?? 0));
+        const segHtml = segs
+          .map((bar) => this._segmentHtml(bar, c))
+          .join("");
+
+        // How many timed chips actually fit given the vertical space the bars
+        // take up. Anything that doesn't fit is reported via "+N more".
+        const segCount = segs.length;
+        const avail =
+          this._cellH - this._dayNumH - segCount * this._segRowH - 4 - this._noteH;
+        const chipLimit = Math.max(1, Math.floor(avail / this._chipRowH));
         const chips = timed.slice(0, chipLimit);
         const more = timed.length - chips.length;
+
         const cls = [
           "day-cell",
           inMonth ? "" : "out-month",
@@ -825,6 +833,7 @@ class HaGoogleCalendarCard extends HTMLElement {
         return `
           <div class="${cls}" data-day="${key}">
             <div class="day-num">${date.getDate()}</div>
+            ${segHtml}
             ${chips
               .map((e) => {
                 const color = this._eventColor(e);
@@ -839,8 +848,25 @@ class HaGoogleCalendarCard extends HTMLElement {
       })
       .join("");
 
-    const lanesBlock = lanesHtml ? `<div class="week-lanes">${lanesHtml}</div>` : "";
-    return `<div class="week"><div class="week-days">${dayCellsHtml}</div>${lanesBlock}</div>`;
+    return `<div class="week"><div class="week-days">${dayCellsHtml}</div></div>`;
+  }
+
+  private _segmentHtml(bar: SpanningBar, col: number): string {
+    const color = this._eventColor(bar.event);
+    const textColor = pickTextColor(color);
+    const isStart = col === bar.colStart;
+    const isEnd = col === bar.colEnd - 1;
+    let radius = "0";
+    if (isStart && isEnd) radius = "3px";
+    else if (isStart) radius = "3px 0 0 3px";
+    else if (isEnd) radius = "0 3px 3px 0";
+    const colorStyle = textColor ? `color:${textColor};` : "";
+    const contLeft = isStart && bar.startsBefore ? `<span class="cont-l">\u2039</span>` : "";
+    const contRight = isEnd && bar.endsAfter ? `<span class="cont">\u203a</span>` : "";
+    // Only the first (start) segment carries the label; continuation days render
+    // a plain coloured bar so the event reads as one continuous bar across days.
+    const label = isStart ? this._escape(bar.event.summary) : "";
+    return `<div class="ms-seg" style="border-radius:${radius};background-color:${color};${colorStyle}" data-day="${dayKey(bar.event.startDate)}">${contLeft}${label}${contRight}</div>`;
   }
 
   private _dayDetailHtml(
