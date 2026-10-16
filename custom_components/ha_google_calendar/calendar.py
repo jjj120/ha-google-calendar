@@ -107,6 +107,13 @@ class GoogleCalendarEntity(
             for attendee in event.attendees
         ):
             return False
+        # All-day events are marked "transparent" (free) by default in Google
+        # Calendar, which would hide them under the availability filter. A
+        # whole-day event is still a real event, so always show it.
+        if getattr(event.start, "date_time", None) is None and getattr(
+            event.start, "date", None
+        ) is not None:
+            return True
         if self._ignore_availability:
             return True
         return event.transparency == OPAQUE
