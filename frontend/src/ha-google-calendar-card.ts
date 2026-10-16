@@ -426,8 +426,20 @@ class HaGoogleCalendarCard extends HTMLElement {
       .event-cal { white-space: nowrap; }
 
       /* Month view */
-      .month-header { display: flex; align-items: center; gap: 4px; padding: 10px 8px 6px; }
-      .month-title { flex: 1 1 auto; font-size: 15px; font-weight: 500; padding: 0 8px; }
+      .month-header {
+        display: grid; grid-template-columns: 1fr auto 1fr;
+        align-items: center; gap: 4px; padding: 10px 8px 6px;
+      }
+      .month-custom {
+        grid-column: 1; min-width: 0; font-size: 15px; font-weight: 500;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        justify-self: start;
+      }
+      .month-title {
+        grid-column: 2; font-size: 15px; font-weight: 500; padding: 0 8px;
+        text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .month-nav { grid-column: 3; display: flex; align-items: center; gap: 2px; justify-self: end; }
       .nav-btn {
         border: none; background: transparent; color: var(--primary-text-color);
         cursor: pointer; padding: 4px 8px; font-size: 18px; line-height: 1;
@@ -711,7 +723,7 @@ class HaGoogleCalendarCard extends HTMLElement {
     const firstIdx = this._firstDayIndex();
     const cells = monthCells(this._monthAnchor, firstIdx);
 
-    const title = config.title ?? this._monthLabel();
+    const customTitle = config.title;
     const weekdayLabels = WEEKDAYS_SHORT.map((_, i) => {
       // Jan 1 2024 is a Monday (weekday index 1).
       const date = new Date(2024, 0, 1 + (((i + firstIdx) - 1 + 7) % 7));
@@ -745,12 +757,18 @@ class HaGoogleCalendarCard extends HTMLElement {
       ? this._dayDetailHtml(selectedKey, eventsByDay)
       : "";
 
+    // Layout: [custom title (or spacer)] [month centred in the middle] [prev/today/next on the right]
+    const monthText = this._monthLabel();
+
     root.innerHTML = `
       <div class="month-header">
-        <button class="nav-btn" data-action="prev" title="Previous month">\u2039</button>
-        <div class="month-title">${this._escape(title)}</div>
-        <button class="nav-btn" data-action="today" title="Today">\u25cf</button>
-        <button class="nav-btn" data-action="next" title="Next month">\u203a</button>
+        <div class="month-custom">${customTitle ? this._escape(customTitle) : ""}</div>
+        <div class="month-title">${this._escape(monthText)}</div>
+        <div class="month-nav">
+          <button class="nav-btn" data-action="prev" title="Previous month">\u2039</button>
+          <button class="nav-btn" data-action="today" title="Today">\u25cf</button>
+          <button class="nav-btn" data-action="next" title="Next month">\u203a</button>
+        </div>
       </div>
       <div class="weekday-row">
         ${weekdayLabels.map((w) => `<div class="weekday">${this._escape(w)}</div>`).join("")}
