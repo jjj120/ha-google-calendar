@@ -188,6 +188,20 @@ function spansMultipleDays(event: RankedEvent): boolean {
   return range.lastDay.getTime() > range.startDay.getTime();
 }
 
+// Deterministic ordering for events: start time ascending, then (for events
+// that start at the same instant) title A-Z, calendar A-Z, then uid. The fetch
+// order from the calendar API is not stable across refreshes, so a tiebreaker
+// keeps events from swapping places on re-render.
+function compareChronologically(a: RankedEvent, b: RankedEvent): number {
+  const byStart = a.startDate.getTime() - b.startDate.getTime();
+  if (byStart !== 0) return byStart;
+  const byTitle = (a.summary ?? "").localeCompare(b.summary ?? "");
+  if (byTitle !== 0) return byTitle;
+  const byCalendar = (a.calendarName ?? "").localeCompare(b.calendarName ?? "");
+  if (byCalendar !== 0) return byCalendar;
+  return (a.uid ?? "").localeCompare(b.uid ?? "");
+}
+
 function monthCells(anchor: Date, firstIdx: number): Date[] {
   const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
   const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
@@ -567,7 +581,7 @@ class HaGoogleCalendarCard extends HTMLElement {
         }),
       );
       if (sourceKey !== this._sourceKey) return;
-      results.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+      results.sort(compareChronologically);
       this._events = results;
     } catch (err) {
       if (sourceKey !== this._sourceKey) return;
@@ -813,7 +827,7 @@ class HaGoogleCalendarCard extends HTMLElement {
           .filter((e) => !spansMultipleDays(e))
           .sort((a, b) => {
             if (a.all_day !== b.all_day) return a.all_day ? -1 : 1;
-            return a.startDate.getTime() - b.startDate.getTime();
+            return compareChronologically(a, b);
           });
 
         // Segments of multi-day events covering this column, in lane order.
@@ -886,9 +900,7 @@ class HaGoogleCalendarCard extends HTMLElement {
     key: string,
     eventsByDay: Map<string, RankedEvent[]>,
   ): string {
-    const events = (eventsByDay.get(key) ?? []).sort(
-      (a, b) => a.startDate.getTime() - b.startDate.getTime(),
-    );
+    const events = (eventsByDay.get(key) ?? []).sort(compareChronologically);
     const date = new Date(`${key}T00:00:00`);
     const label = new Intl.DateTimeFormat(undefined, {
       weekday: "long",
