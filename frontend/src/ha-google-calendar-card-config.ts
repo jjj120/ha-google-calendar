@@ -195,6 +195,7 @@ export class HaGoogleCalendarCardEditor extends HTMLElement {
             options: [
               { value: "agenda", label: "Agenda list" },
               { value: "month", label: "Month grid" },
+              { value: "day", label: "Day view" },
             ],
           },
         },

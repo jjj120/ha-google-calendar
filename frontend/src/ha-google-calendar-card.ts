@@ -11,7 +11,7 @@ const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 
-export type ViewMode = "agenda" | "month";
+export type ViewMode = "agenda" | "month" | "day";
 
 export interface CardConfig {
   type: string;
@@ -243,6 +243,74 @@ interface SpanningBar {
   endsAfter: boolean;
 }
 
+// Minutes since the start of the day the Date falls on, with fractional
+// seconds included so a timeline event can be positioned precisely.
+function minutesSinceMidnight(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+}
+
+interface TimelineEvent {
+  event: RankedEvent;
+  startMin: number;
+  endMin: number;
+}
+
+interface PositionedTimelineEvent extends TimelineEvent {
+  column: number;
+  numColumns: number;
+}
+
+// Lays out timed events on a single day's timeline. Events that overlap
+// (transitively) are grouped into a cluster and greedily coloured into lanes
+// so that genuinely-simultaneous events sit side-by-side while later ones are
+// pushed into the next column. Non-overlapping events reuse the first free
+// column, so widths only shrink for real overlaps.
+function layoutTimeline(events: TimelineEvent[]): PositionedTimelineEvent[] {
+  const sorted = [...events].sort(
+    (a, b) =>
+      a.startMin - b.startMin ||
+      b.endMin - a.endMin ||
+      (a.event.summary ?? "").localeCompare(b.event.summary ?? ""),
+  );
+
+  const clusters: TimelineEvent[][] = [];
+  let cluster: TimelineEvent[] = [];
+  let clusterEnd = -1;
+  for (const item of sorted) {
+    if (cluster.length > 0 && item.startMin >= clusterEnd) {
+      clusters.push(cluster);
+      cluster = [];
+      clusterEnd = -1;
+    }
+    cluster.push(item);
+    clusterEnd = Math.max(clusterEnd, item.endMin);
+  }
+  if (cluster.length > 0) clusters.push(cluster);
+
+  const result: PositionedTimelineEvent[] = [];
+  for (const group of clusters) {
+    const laneEnds: number[] = [];
+    const placed: { item: TimelineEvent; column: number }[] = [];
+    for (const item of group) {
+      let lane = laneEnds.findIndex((end) => end <= item.startMin);
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(item.endMin);
+      } else {
+        laneEnds[lane] = item.endMin;
+      }
+      placed.push({ item, column: lane });
+    }
+    const numColumns = laneEnds.length;
+    for (const p of placed) {
+      result.push({ ...p.item, column: p.column, numColumns });
+    }
+  }
+  return result.sort(
+    (a, b) => a.startMin - b.startMin || a.column - b.column,
+  );
+}
+
 class HaGoogleCalendarCard extends HTMLElement {
   private _config!: CardConfig;
   private _hass?: HomeAssistant;
@@ -264,7 +332,12 @@ class HaGoogleCalendarCard extends HTMLElement {
   private _segRowH = 15;
   private _noteH = 16;
   private _monthAnchor = new Date();
-  private _selectedDayKey: string | null = null;
+  // Day view state. _dayAnchor is the day shown in the timeline; _viewOverride
+  // lets a user click into the day view from the month grid without permanently
+  // changing the configured view (the saved `view` stays "month").
+  private _dayAnchor = new Date();
+  private _viewOverride: ViewMode | null = null;
+  private _dayLabelStep = 1;
 
   constructor() {
     super();
@@ -310,15 +383,18 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   getCardSize(): number {
-    if (this._config?.view === "month") return this._monthRows();
+    if (this._effectiveView() === "month") return this._monthRows();
     return Math.min(Math.max(this._events.length, 1), 12);
   }
 
   getGridOptions(): GridOptions {
     // Only the defaults are returned; HA keeps min at 1 and provides no max,
     // so the card can be sized to any width (up to the section) and height.
-    if (this._config?.view === "month") {
+    if (this._effectiveView() === "month") {
       return { columns: 6, rows: this._monthRows() };
+    }
+    if (this._effectiveView() === "day") {
+      return { columns: 2, rows: 4 };
     }
     return { columns: 3, rows: 4 };
   }
@@ -326,6 +402,10 @@ class HaGoogleCalendarCard extends HTMLElement {
   private _monthRows(): number {
     const weeks = Math.ceil(monthCells(this._monthAnchor, this._firstDayIndex()).length / 7);
     return weeks + 2;
+  }
+
+  private _effectiveView(): ViewMode {
+    return this._viewOverride ?? this._config.view ?? "agenda";
   }
 
   connectedCallback(): void {
@@ -344,7 +424,15 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   private _measureGeometry(): void {
-    if (this._config?.view !== "month") return;
+    const view = this._effectiveView();
+    if (view === "month") {
+      this._measureMonthCell();
+    } else if (view === "day") {
+      this._measureDayLabels();
+    }
+  }
+
+  private _measureMonthCell(): void {
     const cell = this._rootEl.querySelector<HTMLElement>(".day-cell");
     if (!cell) return;
     const chip = this._rootEl.querySelector<HTMLElement>(".chip");
@@ -368,6 +456,28 @@ class HaGoogleCalendarCard extends HTMLElement {
     this._dayNumH = dayNumH;
     this._segRowH = segRowH;
     this._render();
+  }
+
+  // Pick the smallest hour-label step from {1,2,3,4,6,12} that keeps the tick
+  // labels at least ~18px apart for the lane's current height, so the gutter
+  // stays readable on short fit-to-height cards.
+  private _measureDayLabels(): void {
+    const lane = this._rootEl.querySelector<HTMLElement>(".day-lane");
+    if (!lane) return;
+    const h = lane.clientHeight;
+    if (h <= 0) return;
+    const pxPerHour = h / 24;
+    let step = 12;
+    for (const s of [1, 2, 3, 4, 6, 12]) {
+      if (pxPerHour * s >= 18) {
+        step = s;
+        break;
+      }
+    }
+    if (step !== this._dayLabelStep) {
+      this._dayLabelStep = step;
+      this._render();
+    }
   }
 
   private _firstDayIndex(): number {
@@ -488,27 +598,57 @@ class HaGoogleCalendarCard extends HTMLElement {
         opacity: 0.85; margin-right: 3px; font-variant-numeric: tabular-nums;
       }
       .more { font-size: 10px; color: var(--secondary-text-color); margin-top: 2px; }
-      .day-detail {
-        border-top: 1px solid var(--divider-color, rgba(128,128,128,0.25));
-        padding: 4px 12px 12px; max-height: 45%; overflow-y: auto;
+
+      /* Day (timeline) view */
+      .day-view { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+      .day-all {
+        display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 4px; flex: 0 0 auto;
       }
-      .detail-head {
-        display: flex; align-items: center; justify-content: space-between;
-        font-weight: 600; font-size: 13px; padding: 4px 0;
+      .all-chip {
+        border-radius: 3px; font-size: 11px; padding: 2px 6px; max-width: 100%;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff;
       }
-      .detail-close {
-        border: none; background: transparent; color: var(--secondary-text-color);
-        cursor: pointer; font-size: 18px; line-height: 1;
+      .day-pane {
+        display: grid; grid-template-columns: 48px 1fr; flex: 1 1 auto;
+        min-height: 0; margin: 0 8px 8px; position: relative;
       }
-      .detail-empty { color: var(--secondary-text-color); font-size: 13px; padding: 4px 0; }
+      .day-gutter, .day-lane { position: relative; height: 100%; min-height: 0; }
+      .day-gutter { border-top: 1px solid var(--divider-color, rgba(128,128,128,0.25)); }
+      .gutter-label {
+        position: absolute; right: 6px; transform: translateY(-50%);
+        font-size: 10px; color: var(--secondary-text-color); white-space: nowrap;
+      }
+      .day-lane { border-left: 1px solid var(--divider-color, rgba(128,128,128,0.25)); }
+      .gridline {
+        position: absolute; left: 0; right: 0; height: 1px;
+        background: var(--divider-color, rgba(128,128,128,0.25)); pointer-events: none;
+      }
+      .now-line {
+        position: absolute; left: 0; right: 0; height: 1px;
+        background-color: var(--primary-color); z-index: 2; pointer-events: none;
+      }
+      .now-dot {
+        position: absolute; right: 4px; width: 8px; height: 8px; border-radius: 50%;
+        background-color: var(--primary-color); transform: translateY(-50%); z-index: 3;
+      }
+      .time-event {
+        position: absolute; box-sizing: border-box; border-radius: 3px;
+        overflow: hidden; padding: 1px 4px; font-size: 11px; line-height: 1.3;
+        min-height: 12px; color: #fff; cursor: default; z-index: 1;
+      }
+      .time-event-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     `;
   }
 
   private _sourceKeyNow(): string {
     return JSON.stringify({
       entities: this._config?.entities ?? [],
-      view: this._config?.view ?? "agenda",
-      anchor: this._config?.view === "month" ? monthKey(this._monthAnchor) : null,
+      view: this._effectiveView(),
+      anchor: this._effectiveView() === "month"
+        ? monthKey(this._monthAnchor)
+        : this._effectiveView() === "day"
+          ? dayKey(this._dayAnchor)
+          : null,
       days: this._config?.days ?? DEFAULT_DAYS,
       lookback: this._config?.lookback ?? DEFAULT_LOOKBACK,
     });
@@ -525,10 +665,16 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   private _requestWindow(): { start: Date; end: Date } {
-    if (this._config.view === "month") {
+    const view = this._effectiveView();
+    if (view === "month") {
       const cells = monthCells(this._monthAnchor, this._firstDayIndex());
       const start = addDays(cells[0], -1);
       const end = addDays(cells[cells.length - 1], 2);
+      return { start, end };
+    }
+    if (view === "day") {
+      const start = startOfDay(this._dayAnchor);
+      const end = addDays(start, 1);
       return { start, end };
     }
     const start = new Date(Date.now() - (this._config.lookback ?? DEFAULT_LOOKBACK) * DAY_MS);
@@ -614,31 +760,55 @@ class HaGoogleCalendarCard extends HTMLElement {
     const action = target.getAttribute("data-action");
     if (action === "prev") {
       this._monthAnchor = new Date(this._monthAnchor.getFullYear(), this._monthAnchor.getMonth() - 1, 1);
-      this._selectedDayKey = null;
+      this._viewOverride = null;
       this._reload();
       return;
     }
     if (action === "next") {
       this._monthAnchor = new Date(this._monthAnchor.getFullYear(), this._monthAnchor.getMonth() + 1, 1);
-      this._selectedDayKey = null;
+      this._viewOverride = null;
       this._reload();
       return;
     }
     if (action === "today") {
       this._monthAnchor = new Date();
-      this._selectedDayKey = null;
+      this._viewOverride = null;
       this._reload();
       return;
     }
-    if (action === "close-detail") {
-      this._selectedDayKey = null;
-      this._render();
+    if (action === "day-prev") {
+      this._dayAnchor = addDays(this._dayAnchor, -1);
+      this._reload();
+      return;
+    }
+    if (action === "day-next") {
+      this._dayAnchor = addDays(this._dayAnchor, 1);
+      this._reload();
+      return;
+    }
+    if (action === "day-today") {
+      this._dayAnchor = new Date();
+      this._reload();
+      return;
+    }
+    if (action === "back-to-month") {
+      this._monthAnchor = new Date(
+        this._dayAnchor.getFullYear(),
+        this._dayAnchor.getMonth(),
+        1,
+      );
+      this._viewOverride = null;
+      this._reload();
       return;
     }
     const day = target.getAttribute("data-day");
     if (day) {
-      this._selectedDayKey = this._selectedDayKey === day ? null : day;
-      this._render();
+      // Clicking a day in the month grid opens the day/timeline view for it
+      // (transient override: the configured view stays "month").
+      const date = new Date(`${day}T00:00:00`);
+      this._dayAnchor = date;
+      this._viewOverride = "day";
+      this._reload();
     }
   }
 
@@ -666,8 +836,10 @@ class HaGoogleCalendarCard extends HTMLElement {
       root.innerHTML = `<div class="spinner">Loading calendar\u2026</div>`;
       return;
     }
-    if (config.view === "month") {
+    if (this._effectiveView() === "month") {
       this._renderMonth(root, config);
+    } else if (this._effectiveView() === "day") {
+      this._renderDay(root, config);
     } else {
       this._renderAgenda(root, config);
     }
@@ -731,8 +903,6 @@ class HaGoogleCalendarCard extends HTMLElement {
       return new Intl.DateTimeFormat(undefined, { weekday: "narrow" }).format(date);
     });
 
-    const selectedKey = this._selectedDayKey;
-
     // Map each day key -> events covering that day.
     const eventsByDay = new Map<string, RankedEvent[]>();
     for (const event of this._events) {
@@ -754,10 +924,6 @@ class HaGoogleCalendarCard extends HTMLElement {
       weeksHtml.push(this._weekHtml(weekDates, weekStart, weekEnd, weekKeyStart, eventsByDay));
     }
 
-    const detailHtml = selectedKey
-      ? this._dayDetailHtml(selectedKey, eventsByDay)
-      : "";
-
     // Layout: [custom title (or spacer)] [month centred in the middle] [prev/today/next on the right]
     const monthText = this._monthLabel();
 
@@ -776,7 +942,6 @@ class HaGoogleCalendarCard extends HTMLElement {
       </div>
       <div class="month-scroll">
         ${weeksHtml.join("")}
-        ${detailHtml}
       </div>
     `;
   }
@@ -785,6 +950,117 @@ class HaGoogleCalendarCard extends HTMLElement {
     return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(
       this._monthAnchor,
     );
+  }
+
+  private _dayHeaderLabel(day: Date): string {
+    const today = new Date();
+    const tomorrow = addDays(today, 1);
+    if (isSameDay(day, today)) return "Today";
+    if (isSameDay(day, tomorrow)) return "Tomorrow";
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }).format(day);
+  }
+
+  private _hourLabel(hour: number): string {
+    const h12 = hour % 12 || 12;
+    return `${h12} ${hour < 12 ? "AM" : "PM"}`;
+  }
+
+  private _renderDay(root: HTMLElement, config: CardConfig): void {
+    const dayStart = startOfDay(this._dayAnchor);
+    const anchorT = dayStart.getTime();
+    const dayLabel = this._dayHeaderLabel(this._dayAnchor);
+    const customTitle = config.title;
+    const fromMonth = this._viewOverride === "day";
+
+    // Events covering the shown day, split into the all-day strip and the timed
+    // timeline. Timed events are clipped to the day's 24h window (minutes since
+    // the shown day's midnight, so multi-day timed events are capped correctly).
+    const allDay: RankedEvent[] = [];
+    const timed: TimelineEvent[] = [];
+    for (const event of this._events) {
+      const range = eventDayRange(event);
+      if (range.startDay.getTime() > anchorT) continue;
+      if (range.lastDay.getTime() < anchorT) continue;
+      if (event.all_day) {
+        allDay.push(event);
+        continue;
+      }
+      const startMin = Math.max(0, (event.startDate.getTime() - anchorT) / 60000);
+      const endMin = Math.min(1440, (event.endDate.getTime() - anchorT) / 60000);
+      if (endMin <= startMin) continue;
+      timed.push({ event, startMin, endMin });
+    }
+
+    const positioned = layoutTimeline(timed);
+
+    const hourGridlines: string[] = [];
+    const hourLabels: string[] = [];
+    const step = this._dayLabelStep;
+    for (let h = 0; h <= 24; h++) {
+      hourGridlines.push(`<div class="gridline" style="top:${(h / 24) * 100}%"></div>`);
+      if (h < 24 && h % step === 0) {
+        hourLabels.push(
+          `<div class="gutter-label" style="top:${(h / 24) * 100}%">${this._escape(this._hourLabel(h))}</div>`,
+        );
+      }
+    }
+
+    const now = new Date();
+    let nowLine = "";
+    let nowDot = "";
+    if (isSameDay(this._dayAnchor, now)) {
+      const top = (minutesSinceMidnight(now) / 1440) * 100;
+      nowLine = `<div class="now-line" style="top:${top}%"></div>`;
+      nowDot = `<div class="now-dot" style="top:${top}%"></div>`;
+    }
+
+    const allDayHtml = allDay.length
+      ? `<div class="day-all">${allDay
+          .map((e) => {
+            const color = this._eventColor(e);
+            const tc = pickTextColor(color);
+            return `<div class="all-chip" style="background-color:${color};${tc ? `color:${tc};` : ""}" title="${this._escape(e.summary)}">${this._escape(e.summary)}</div>`;
+          })
+          .join("")}</div>`
+      : "";
+
+    const eventsHtml = positioned
+      .map((p) => {
+        const color = this._eventColor(p.event);
+        const tc = pickTextColor(color);
+        const left = (p.column * 100) / p.numColumns;
+        const width = 100 / p.numColumns;
+        const top = (p.startMin / 1440) * 100;
+        const height = Math.max(((p.endMin - p.startMin) / 1440) * 100, 0.2);
+        return `
+          <div class="time-event" style="left:${left}%;width:${width}%;top:${top}%;height:${height}%;background-color:${color};${tc ? `color:${tc};` : ""}" title="${this._escape(p.event.summary)}">
+            <div class="time-event-summary">${this._escape(p.event.summary)}</div>
+          </div>`;
+      })
+      .join("");
+
+    root.innerHTML = `
+      <div class="day-view">
+        <div class="month-header">
+          <div class="month-custom">${customTitle ? this._escape(customTitle) : ""}</div>
+          <div class="month-title">${this._escape(dayLabel)}</div>
+          <div class="month-nav">
+            ${fromMonth ? `<button class="nav-btn" data-action="back-to-month" title="Back to month">\u00ab</button>` : ""}
+            <button class="nav-btn" data-action="day-today" title="Today">\u25cf</button>
+            <button class="nav-btn" data-action="day-prev" title="Previous day">\u2039</button>
+            <button class="nav-btn" data-action="day-next" title="Next day">\u203a</button>
+          </div>
+        </div>
+        ${allDayHtml}
+        <div class="day-pane">
+          <div class="day-gutter">${nowDot}${hourLabels.join("")}</div>
+          <div class="day-lane">${hourGridlines.join("")}${nowLine}${eventsHtml}</div>
+        </div>
+      </div>`;
   }
 
   private _weekHtml(
@@ -872,7 +1148,6 @@ class HaGoogleCalendarCard extends HTMLElement {
           inMonth ? "" : "out-month",
           key === todayKey ? "today" : "",
           date.getTime() < todayStart.getTime() ? "past" : "",
-          key === this._selectedDayKey ? "selected" : "",
         ]
           .filter(Boolean)
           .join(" ");
@@ -915,33 +1190,6 @@ class HaGoogleCalendarCard extends HTMLElement {
     // a plain coloured bar so the event reads as one continuous bar across days.
     const label = isStart ? this._escape(bar.event.summary) : "";
     return `<div class="ms-seg" style="border-radius:${radius};background-color:${color};${colorStyle}" data-day="${dayKey(bar.event.startDate)}">${contLeft}${label}${contRight}</div>`;
-  }
-
-  private _dayDetailHtml(
-    key: string,
-    eventsByDay: Map<string, RankedEvent[]>,
-  ): string {
-    const events = (eventsByDay.get(key) ?? []).sort(compareChronologically);
-    const date = new Date(`${key}T00:00:00`);
-    const label = new Intl.DateTimeFormat(undefined, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(date);
-    const showTime = this._config.showTime ?? true;
-    const showCalendar = this._config.showCalendarName ?? false;
-    const items = events.length
-      ? events.map((e) => this._eventHtml(e, showTime, showCalendar)).join("")
-      : `<div class="detail-empty">No events this day.</div>`;
-    return `
-      <div class="day-detail">
-        <div class="detail-head">
-          <span>${this._escape(label)}</span>
-          <button class="detail-close" data-action="close-detail" title="Close">\u00d7</button>
-        </div>
-        ${items}
-      </div>`;
   }
 
   private _eventColor(event: RankedEvent): string {
