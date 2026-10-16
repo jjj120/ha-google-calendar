@@ -47,6 +47,17 @@ interface EntityColorMap {
   fallback: string | undefined;
 }
 
+interface GridOptions {
+  rows?: number;
+  columns?: number;
+  min_columns?: number;
+  max_columns?: number;
+  min_rows?: number;
+  max_rows?: number;
+  default_columns?: number;
+  default_rows?: number;
+}
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -279,11 +290,39 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   getCardSize(): number {
-    if (this._config?.view === "month") {
-      const weeks = Math.ceil(monthCells(this._monthAnchor, this._firstDayIndex()).length / 7);
-      return Math.min(weeks + 2, 8);
-    }
+    if (this._config?.view === "month") return this._monthRows();
     return Math.min(Math.max(this._events.length, 1), 12);
+  }
+
+  getGridOptions(): GridOptions {
+    if (this._config?.view === "month") {
+      const rows = this._monthRows();
+      return {
+        rows,
+        columns: 3,
+        min_columns: 2,
+        max_columns: 6,
+        min_rows: 2,
+        max_rows: 24,
+        default_columns: 3,
+        default_rows: rows,
+      };
+    }
+    return {
+      rows: 4,
+      columns: 3,
+      min_columns: 2,
+      max_columns: 6,
+      min_rows: 1,
+      max_rows: 24,
+      default_columns: 3,
+      default_rows: 4,
+    };
+  }
+
+  private _monthRows(): number {
+    const weeks = Math.ceil(monthCells(this._monthAnchor, this._firstDayIndex()).length / 7);
+    return weeks + 2;
   }
 
   disconnectedCallback(): void {
@@ -358,8 +397,14 @@ class HaGoogleCalendarCard extends HTMLElement {
         text-align: center; font-size: 11px; color: var(--secondary-text-color);
         text-transform: uppercase; padding: 4px 0;
       }
-      .month-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 8px; }
-      .week { margin-bottom: 2px; }
+      .month-scroll {
+        flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 8px;
+        display: flex; flex-direction: column;
+      }
+      .week {
+        margin-bottom: 4px; flex: 1 1 0; min-height: 0;
+        display: flex; flex-direction: column;
+      }
       .week-lanes { display: flex; flex-direction: column; gap: 1px; }
       .lane { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; min-height: 14px; }
       .ms-bar {
@@ -372,7 +417,10 @@ class HaGoogleCalendarCard extends HTMLElement {
       }
       .cont { position: absolute; right: 0; top: 0; bottom: 0; padding: 0 2px; opacity: 0.9; }
       .cont-l { position: absolute; left: 0; top: 0; bottom: 0; padding: 0 2px; opacity: 0.9; }
-      .week-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+      .week-days {
+        display: grid; grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: 1fr; flex: 1 1 auto; min-height: 0;
+      }
       .day-cell {
         min-height: 52px; border-top: 1px solid var(--divider-color, rgba(128,128,128,0.25));
         padding: 2px 3px; cursor: pointer; overflow: hidden;
