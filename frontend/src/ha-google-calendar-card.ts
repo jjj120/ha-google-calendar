@@ -327,19 +327,13 @@ class HaGoogleCalendarCard extends HTMLElement {
     const cell = this._rootEl.querySelector<HTMLElement>(".day-cell");
     if (!cell) return;
     const height = cell.clientHeight;
-    const headerSpace = 18; // day number + cell padding
-    const chipHeight = 15; // chip line height incl. margin
+    const headerSpace = 20; // day number + cell padding
+    const chipHeight = 16; // chip line height incl. margin
+    // Show exactly as many chips as fit in the cell; any that don't fit are
+    // reported via the "+N more" note rather than being clipped silently.
     const fit = Math.max(1, Math.floor((height - headerSpace) / chipHeight));
-    // monthChipLimit is the minimum number of entries to always show; the card
-    // reveals more as it gets taller. This keeps a tall calendar from being
-    // stuck at a low count because of a leftover monthChipLimit value.
-    const min =
-      typeof this._config.monthChipLimit === "number"
-        ? this._config.monthChipLimit
-        : 1;
-    const limit = Math.max(fit, min);
-    if (limit !== this._chipLimit) {
-      this._chipLimit = limit;
+    if (fit !== this._chipLimit) {
+      this._chipLimit = fit;
       this._render();
     }
   }
