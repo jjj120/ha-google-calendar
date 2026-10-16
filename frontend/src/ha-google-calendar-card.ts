@@ -240,6 +240,8 @@ class HaGoogleCalendarCard extends HTMLElement {
   private _error?: string;
   private _sourceKey = "";
   private _refreshTimer?: number;
+  private _resizeObserver?: ResizeObserver;
+  private _chipLimit = 3;
   private _monthAnchor = new Date();
   private _selectedDayKey: string | null = null;
 
@@ -283,7 +285,6 @@ class HaGoogleCalendarCard extends HTMLElement {
       showCalendarName: false,
       showEmpty: false,
       view: "agenda",
-      monthChipLimit: 3,
     };
   }
 
@@ -306,8 +307,38 @@ class HaGoogleCalendarCard extends HTMLElement {
     return weeks + 2;
   }
 
+  connectedCallback(): void {
+    if (!this._resizeObserver) {
+      this._resizeObserver = new ResizeObserver(() => this._refreshChipLimit());
+      this._resizeObserver.observe(this);
+    }
+  }
+
   disconnectedCallback(): void {
     if (this._refreshTimer) window.clearTimeout(this._refreshTimer);
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = undefined;
+    }
+  }
+
+  private _refreshChipLimit(): void {
+    if (this._config?.view !== "month") return;
+    const cell = this._rootEl.querySelector<HTMLElement>(".day-cell");
+    if (!cell) return;
+    const height = cell.clientHeight;
+    const headerSpace = 18; // day number + cell padding
+    const chipHeight = 15; // chip line height incl. margin
+    const cap =
+      typeof this._config.monthChipLimit === "number"
+        ? this._config.monthChipLimit
+        : 30;
+    const fit = Math.max(1, Math.floor((height - headerSpace) / chipHeight));
+    const limit = Math.min(fit, cap);
+    if (limit !== this._chipLimit) {
+      this._chipLimit = limit;
+      this._render();
+    }
   }
 
   private _firstDayIndex(): number {
@@ -596,6 +627,9 @@ class HaGoogleCalendarCard extends HTMLElement {
     } else {
       this._renderAgenda(root, config);
     }
+    // Measure the day-cell row height after layout and adjust the per-day chip
+    // limit so more events are shown when the calendar is taller.
+    window.requestAnimationFrame(() => this._refreshChipLimit());
   }
 
   private _renderAgenda(root: HTMLElement, config: CardConfig): void {
@@ -770,7 +804,7 @@ class HaGoogleCalendarCard extends HTMLElement {
         const timed = events
           .filter((e) => !spansMultipleDays(e))
           .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-        const chipLimit = this._config.monthChipLimit ?? 3;
+        const chipLimit = this._chipLimit;
         const chips = timed.slice(0, chipLimit);
         const more = timed.length - chips.length;
         const cls = [
