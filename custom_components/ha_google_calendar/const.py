@@ -7,6 +7,11 @@ from typing import Final
 
 DOMAIN: Final = "ha_google_calendar"
 
+# Static card bundle served by the integration at /local/ha-google-calendar-card.js.
+# Built from frontend/ into this package's www/ directory.
+CARD_FILENAME: Final = "ha-google-calendar-card.js"
+CARD_URL: Final = f"/local/{CARD_FILENAME}"
+
 CONF_LOOKAHEAD_DAYS: Final = "lookahead_days"
 CONF_LOOKBACK_DAYS: Final = "lookback_days"
 CONF_CALENDAR_ACCESS: Final = "calendar_access"

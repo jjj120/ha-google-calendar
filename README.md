@@ -24,16 +24,16 @@ rendering it with a dedicated card.
 ha-google-calendar/
 ├─ custom_components/ha_google_calendar/  # backend integration (Python)
 │  ├─ manifest.json                       # domain, requirements (gcal-sync>=9.1.0)
-│  ├─ __init__.py                         # config entry setup + runtime data
+│  ├─ __init__.py                         # config entry setup + card static path
 │  ├─ const.py                            # DOMAIN, attribute/option constants
 │  ├─ api.py                              # OAuth auth impl for gcal_sync
 │  ├─ colors.py                           # pure per-event colour resolution
 │  ├─ coordinator.py                      # polls events, builds {uid: hex} map
 │  ├─ calendar.py                         # CalendarEntity + extra attributes
 │  ├─ config_flow.py                      # OAuth2 config flow
-│  └─ application_credentials.py          # OAuth app credentials provider
+│  ├─ application_credentials.py          # OAuth app credentials provider
+│  └─ www/ha-google-calendar-card.js      # built card, served at /local/...
 ├─ frontend/                              # card TS source (Vite + TypeScript)
-├─ www/                                   # built card, served at /local/...
 ├─ docker-compose.yml                     # local HA dev instance
 └─ tests/                                 # pytest for colour resolution
 ```
@@ -58,6 +58,33 @@ On each calendar entity the integration provides:
 - `calendar_color` — the calendar's default colour.
 
 ## Setup
+
+> **Tip:** The integrated Lovelace card is bundled into the integration itself, so
+> a HACS or manual download includes both the backend integration *and* the card.
+
+### Option A — Install with HACS
+
+1. Make sure [HACS](https://hacs.xyz) is installed.
+2. Go to **HACS → Integrations** and click the **Explore & download repositories**
+   button (or **⋮ → Custom repositories** if the store entry isn't live yet).
+3. Search for **Google Calendar (per-event colors)**, or add this repository as a
+   custom repository with category **Integration**:
+   `https://github.com/jjj120/ha-google-calendar`.
+4. **Download** the integration, then **restart Home Assistant**.
+5. The card is served automatically at
+   `https://<your-ha>/local/ha-google-calendar-card.js` by the integration — no
+   need to copy any file into your `www/` directory.
+
+### Option B — Install manually
+
+```bash
+git clone https://github.com/jjj120/ha-google-calendar
+cp -r ha-google-calendar/custom_components/ha_google_calendar <config>/custom_components/
+```
+
+Rebuild the card if you want a fresh bundle (see [The card](#the-card) below),
+or copy the pre-built `www/ha-google-calendar-card.js` from the repo. Then
+restart Home Assistant.
 
 ### 1. Google Cloud credentials
 
@@ -89,12 +116,19 @@ your card gets true per-event colours.
 ```bash
 cd frontend
 npm install
-npm run build      # writes ../www/ha-google-calendar-card.js
+npm run build      # writes custom_components/ha_google_calendar/www/ha-google-calendar-card.js
 ```
+
+The built card is bundled into the integration package and served automatically
+at `/local/ha-google-calendar-card.js` — you only need to rebuild it after editing
+the TypeScript source.
 
 ### Use
 
-1. Add a frontend resource: Settings → Dashboards → **Resources** → Add →
+1. The integration serves the card at `/local/ha-google-calendar-card.js`. If your
+   Home Assistant picked up the integration after installing it, this works out of
+   the box. If you'd rather register it explicitly, or you're running a DevTools
+   resource setup: Settings → Dashboards → **Resources** → Add →
    `/local/ha-google-calendar-card.js`.
 2. Add the card to a dashboard. The card ships a **GUI editor**: in the dashboard
    editor, click the card then **⋮ → Edit**, or open the *Add card* picker and
@@ -108,7 +142,7 @@ entities:
   - calendar.family
   - calendar.work
 title: Upcoming events
-view: agenda       # "agenda" (default) or "month"
+view: agenda       # "agenda" (default), "month" or "day"
 days: 30           # agenda: look-ahead window; for "month" it is ignored
 lookback: 7        # agenda: include events already started
 maxEvents: 100
@@ -130,8 +164,14 @@ map. It falls back to the calendar default colour, then the theme accent.
 - **Month** — a month grid with weekday headers, navigation (‹ today ›), today
   highlighted. All-day / multi-day events render as **spanning bars** across their
   days (with continuations at week edges); single-day timed events are compact
-  coloured chips (capped by `monthChipLimit`). **Click any day** to show that day's
-  events in a detail list below the grid.
+  coloured chips (capped by `monthChipLimit`). **Click any day** to open that day
+  as a timeline.
+- **Day** — a full 24-hour timeline for a single day with a time gutter on the
+  left. Each event is positioned proportionally to its start time and duration;
+  overlapping events are pushed into side-by-side columns. All-day / multi-day
+  events go in a strip above the grid, and a current-time line is shown when the
+  day is today. Day navigation: ‹ today › plus a **back to month** button when the
+  day was reached by clicking a cell in the month view.
 
 > Tip (agenda): the card's `days`/`lookback` window should not exceed the window the
 > integration polls (`event_colors` only covers that window). Defaults (30/7) match.
@@ -139,10 +179,10 @@ map. It falls back to the calendar default colour, then the theme accent.
 ## Local testing with Docker
 
 ```bash
-# one-time: build the card (so www/ has the bundle)
+# one-time: build the card (so custom_components/.../www has the bundle)
 cd frontend && npm install && npm run build && cd ..
 
-# run Home Assistant live-mounting the integration + card
+# run Home Assistant live-mounting the integration (which serves the card too)
 docker compose up -d
 # -> http://localhost:8123
 ```

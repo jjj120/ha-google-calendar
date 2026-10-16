@@ -13,8 +13,6 @@ frontend/dist/
 
 # Home Assistant local config (docker mount)
 config/
-www/*.js
-!www/*.example.js
 
 # OS / editor
 .DS_Store

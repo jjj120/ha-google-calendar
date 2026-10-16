@@ -15,9 +15,9 @@ services:
       # Live-mount the custom integration so backend edits require only a
       # config-entry reload (Settings -> Devices & Services -> reload).
       # :z relabels for SELinux-enforcing hosts so the HA user can read them.
+      # The bundled Lovelace card is served by the integration itself at
+      # /local/ha-google-calendar-card.js, so no separate www mount is needed.
       - ./custom_components:/config/custom_components:z
-      # Live-mount the built Lovelace card so it is served at /local/...
-      - ./www:/config/www:z
 
 volumes:
   ha_config:
