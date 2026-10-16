@@ -48,14 +48,12 @@ interface EntityColorMap {
 }
 
 interface GridOptions {
-  rows?: number;
-  columns?: number;
+  rows?: number | "auto";
+  columns?: number | "full";
   min_columns?: number;
   max_columns?: number;
   min_rows?: number;
   max_rows?: number;
-  default_columns?: number;
-  default_rows?: number;
 }
 
 function startOfDay(date: Date): Date {
@@ -295,29 +293,12 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   getGridOptions(): GridOptions {
+    // Only the defaults are returned; HA keeps min at 1 and provides no max,
+    // so the card can be sized to any width (up to the section) and height.
     if (this._config?.view === "month") {
-      const rows = this._monthRows();
-      return {
-        rows,
-        columns: 3,
-        min_columns: 1,
-        max_columns: 12,
-        min_rows: 2,
-        max_rows: 24,
-        default_columns: 3,
-        default_rows: rows,
-      };
+      return { columns: 6, rows: this._monthRows() };
     }
-    return {
-      rows: 4,
-      columns: 3,
-      min_columns: 1,
-      max_columns: 12,
-      min_rows: 1,
-      max_rows: 24,
-      default_columns: 3,
-      default_rows: 4,
-    };
+    return { columns: 3, rows: 4 };
   }
 
   private _monthRows(): number {
