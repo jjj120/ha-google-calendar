@@ -548,7 +548,7 @@ class HaGoogleCalendarCard extends HTMLElement {
       .month-custom {
         grid-column: 1; min-width: 0; font-size: 15px; font-weight: 500;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        justify-self: start;
+        justify-self: start; display: flex; align-items: center; gap: 4px;
       }
       .month-title {
         grid-column: 2; font-size: 15px; font-weight: 500; padding: 0 8px;
@@ -1065,12 +1065,14 @@ class HaGoogleCalendarCard extends HTMLElement {
     root.innerHTML = `
       <div class="day-view">
         <div class="month-header">
-          <div class="month-custom">${customTitle ? this._escape(customTitle) : ""}</div>
+          <div class="month-custom">
+            ${fromMonth ? `<button class="nav-btn" data-action="back-to-month" title="Back to month">\u00ab</button>` : ""}
+            ${customTitle ? this._escape(customTitle) : ""}
+          </div>
           <div class="month-title">${this._escape(dayLabel)}</div>
           <div class="month-nav">
-            ${fromMonth ? `<button class="nav-btn" data-action="back-to-month" title="Back to month">\u00ab</button>` : ""}
-            <button class="nav-btn" data-action="day-today" title="Today">\u25cf</button>
             <button class="nav-btn" data-action="day-prev" title="Previous day">\u2039</button>
+            <button class="nav-btn" data-action="day-today" title="Today">\u25cf</button>
             <button class="nav-btn" data-action="day-next" title="Next day">\u203a</button>
           </div>
         </div>
