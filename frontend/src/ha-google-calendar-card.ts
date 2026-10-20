@@ -640,6 +640,7 @@ class HaGoogleCalendarCard extends HTMLElement {
         position: absolute; box-sizing: border-box; border-radius: 3px;
         overflow: hidden; padding: 1px 4px; font-size: 11px; line-height: 1.3;
         min-height: 12px; color: #fff; cursor: default; z-index: 1;
+        border: 1px solid #000;
       }
       .time-event-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     `;
