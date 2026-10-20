@@ -655,8 +655,15 @@ class HaGoogleCalendarCard extends HTMLElement {
   }
 
   private _maybeScheduleRefresh(): void {
-    this._sourceKey = this._sourceKeyNow();
-    if (!this._loading) void this._fetch(this._sourceKey);
+    // hass is reassigned on every state update, so only fetch when the data we
+    // actually depend on (entities, view, window) changed; otherwise just
+    // re-render from the fresh websocket state. Re-fetching the whole window on
+    // every hass update hammered the backend and rate-limited the Google API.
+    if (this._sourceKeyNow() !== this._sourceKey) {
+      this._reload();
+    } else {
+      this._render();
+    }
     if (this._refreshTimer) window.clearTimeout(this._refreshTimer);
     this._refreshTimer = window.setTimeout(
       () => void this._fetch(this._sourceKey),
@@ -716,7 +723,11 @@ class HaGoogleCalendarCard extends HTMLElement {
           } catch {
             // Fall back to the websocket state below.
           }
-          this._colorMaps[entityId] = { colors: colorMap, fallback };
+          // Only replace the cached map when we actually got usable data; a
+          // transient failure or empty response must not blank the colours.
+          if (fallback !== undefined || Object.keys(colorMap).length > 0) {
+            this._colorMaps[entityId] = { colors: colorMap, fallback };
+          }
           for (const event of events) {
             const startDate = parseDate(event.start);
             const endDate = parseDate(event.end);

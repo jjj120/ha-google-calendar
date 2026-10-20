@@ -265,17 +265,17 @@ class ie extends HTMLElement {
     c.className = "hide-grid", M.forEach(({ name: h, hex: l }) => {
       const p = i.some(
         (g) => g.toLowerCase() === l.toLowerCase()
-      ), f = document.createElement("button");
-      f.type = "button", f.className = p ? "hide-chip active" : "hide-chip", f.dataset.hex = l;
-      const u = document.createElement("span");
-      u.className = "hide-chip-dot", u.style.backgroundColor = l;
-      const _ = document.createElement("span");
-      _.textContent = h, f.append(u, _), f.addEventListener("click", () => {
-        const g = [...this._config.hideColors ?? []], y = g.findIndex(
+      ), u = document.createElement("button");
+      u.type = "button", u.className = p ? "hide-chip active" : "hide-chip", u.dataset.hex = l;
+      const f = document.createElement("span");
+      f.className = "hide-chip-dot", f.style.backgroundColor = l;
+      const y = document.createElement("span");
+      y.textContent = h, u.append(f, y), u.addEventListener("click", () => {
+        const g = [...this._config.hideColors ?? []], _ = g.findIndex(
           (w) => w.toLowerCase() === l.toLowerCase()
         );
-        y >= 0 ? g.splice(y, 1) : g.push(l), this._config = { ...this._config, hideColors: g }, E(this, "config-changed", { config: this._config }), this._renderHideColors();
-      }), c.appendChild(f);
+        _ >= 0 ? g.splice(_, 1) : g.push(l), this._config = { ...this._config, hideColors: g }, E(this, "config-changed", { config: this._config }), this._renderHideColors();
+      }), c.appendChild(u);
     }), r.appendChild(c), i.forEach((h, l) => {
       M.some((p) => p.hex.toLowerCase() === h.toLowerCase()) || r.appendChild(this._hideColorRow(h, l));
     });
@@ -364,12 +364,12 @@ function he(n, a, e, t, o) {
   const s = e?.attributes ?? {}, r = typeof s.event_colors == "object" && s.event_colors !== null ? s.event_colors : {}, c = n.uid ? r[n.uid] : void 0;
   return typeof c == "string" ? c : typeof s.calendar_color == "string" ? s.calendar_color : o;
 }
-function z(n) {
+function O(n) {
   const a = A(n.startDate), e = n.endDate.getTime(), t = new Date(Math.max(e - 1, n.startDate.getTime())), o = A(t);
   return { startDay: a, lastDay: o < a ? a : o };
 }
 function X(n) {
-  const a = z(n);
+  const a = O(n);
   return a.lastDay.getTime() > a.startDay.getTime();
 }
 function Z(n, a) {
@@ -700,7 +700,7 @@ class fe extends HTMLElement {
     });
   }
   _maybeScheduleRefresh() {
-    this._sourceKey = this._sourceKeyNow(), this._loading || this._fetch(this._sourceKey), this._refreshTimer && window.clearTimeout(this._refreshTimer), this._refreshTimer = window.setTimeout(
+    this._sourceKeyNow() !== this._sourceKey ? this._reload() : this._render(), this._refreshTimer && window.clearTimeout(this._refreshTimer), this._refreshTimer = window.setTimeout(
       () => void this._fetch(this._sourceKey),
       re
     );
@@ -730,23 +730,23 @@ class fe extends HTMLElement {
             "GET",
             `calendars/${d}?start=${s}&end=${r}`
           );
-          let p = {}, f;
+          let p = {}, u;
           try {
-            const _ = (await this._hass.callApi("GET", `states/${d}`))?.attributes ?? {};
-            typeof _.event_colors == "object" && _.event_colors !== null && (p = _.event_colors), typeof _.calendar_color == "string" && (f = _.calendar_color);
+            const y = (await this._hass.callApi("GET", `states/${d}`))?.attributes ?? {};
+            typeof y.event_colors == "object" && y.event_colors !== null && (p = y.event_colors), typeof y.calendar_color == "string" && (u = y.calendar_color);
           } catch {
           }
-          this._colorMaps[d] = { colors: p, fallback: f };
-          for (const u of l) {
-            const _ = P(u.start), g = P(u.end);
-            if (!_ || !g) continue;
-            const y = !!(u.start && u.start.date && !u.start.dateTime), w = {
-              ...u,
+          (u !== void 0 || Object.keys(p).length > 0) && (this._colorMaps[d] = { colors: p, fallback: u });
+          for (const f of l) {
+            const y = P(f.start), g = P(f.end);
+            if (!y || !g) continue;
+            const _ = !!(f.start && f.start.date && !f.start.dateTime), w = {
+              ...f,
               entityId: d,
-              startDate: _,
+              startDate: y,
               endDate: g,
               calendarName: String(h?.attributes?.friendly_name ?? d),
-              all_day: y
+              all_day: _
             };
             this._shouldHide(w) || c.push(w);
           }
@@ -829,13 +829,13 @@ class fe extends HTMLElement {
   }
   _renderAgenda(e, t) {
     const o = t.maxEvents ?? 100, i = this._events.slice(0, o), s = t.showTime ?? !0, r = t.showCalendarName ?? !1, c = /* @__PURE__ */ new Date(), d = new Date(c.getTime() + H), h = [];
-    for (const f of i) {
-      const u = $(f.startDate), _ = h[h.length - 1];
-      (!_ || _.key !== u) && h.push({
-        key: u,
-        label: le(f.startDate, c, d),
+    for (const u of i) {
+      const f = $(u.startDate), y = h[h.length - 1];
+      (!y || y.key !== f) && h.push({
+        key: f,
+        label: le(u.startDate, c, d),
         events: []
-      }), h[h.length - 1].events.push(f);
+      }), h[h.length - 1].events.push(u);
     }
     const l = t.title ? `<div class="header">${this._escape(t.title)}</div>` : "";
     if (h.length === 0) {
@@ -843,30 +843,30 @@ class fe extends HTMLElement {
       return;
     }
     const p = h.map(
-      (f) => `
+      (u) => `
           <div class="day">
-            <div class="day-head">${this._escape(f.label)}</div>
-            ${f.events.map((u) => this._eventHtml(u, s, r)).join("")}
+            <div class="day-head">${this._escape(u.label)}</div>
+            ${u.events.map((f) => this._eventHtml(f, s, r)).join("")}
           </div>`
     ).join("");
     e.innerHTML = `${l}<div class="body">${p}</div>`;
   }
   _renderMonth(e, t) {
     const o = this._firstDayIndex(), i = I(this._monthAnchor, o), s = t.title, r = ae.map((l, p) => {
-      const f = new Date(2024, 0, 1 + (p + o - 1 + 7) % 7);
-      return new Intl.DateTimeFormat(void 0, { weekday: "narrow" }).format(f);
+      const u = new Date(2024, 0, 1 + (p + o - 1 + 7) % 7);
+      return new Intl.DateTimeFormat(void 0, { weekday: "narrow" }).format(u);
     }), c = /* @__PURE__ */ new Map();
     for (const l of this._events) {
-      const { startDay: p, lastDay: f } = z(l);
-      for (let u = new Date(p); u <= f; u = D(u, 1)) {
-        const _ = $(u), g = c.get(_);
-        g ? g.push(l) : c.set(_, [l]);
+      const { startDay: p, lastDay: u } = O(l);
+      for (let f = new Date(p); f <= u; f = D(f, 1)) {
+        const y = $(f), g = c.get(y);
+        g ? g.push(l) : c.set(y, [l]);
       }
     }
     const d = [];
     for (let l = 0; l < i.length; l += 7) {
-      const p = i.slice(l, l + 7), f = p[0], u = p[6], _ = U(f);
-      d.push(this._weekHtml(p, f, u, _, c));
+      const p = i.slice(l, l + 7), u = p[0], f = p[6], y = U(u);
+      d.push(this._weekHtml(p, u, f, y, c));
     }
     const h = this._monthLabel();
     e.innerHTML = `
@@ -906,7 +906,7 @@ class fe extends HTMLElement {
   _renderDay(e, t) {
     const i = A(this._dayAnchor).getTime(), s = this._dayHeaderLabel(this._dayAnchor), r = t.title, c = this._viewOverride === "day", d = [], h = [];
     for (const m of this._events) {
-      const b = z(m);
+      const b = O(m);
       if (b.startDay.getTime() > i || b.lastDay.getTime() < i) continue;
       if (m.all_day) {
         d.push(m);
@@ -915,24 +915,24 @@ class fe extends HTMLElement {
       const C = Math.max(0, (m.startDate.getTime() - i) / 6e4), T = Math.min(1440, (m.endDate.getTime() - i) / 6e4);
       T <= C || h.push({ event: m, startMin: C, endMin: T });
     }
-    const l = ue(h), p = [], f = [], u = this._dayLabelStep;
+    const l = ue(h), p = [], u = [], f = this._dayLabelStep;
     for (let m = 0; m <= 24; m++)
-      p.push(`<div class="gridline" style="top:${m / 24 * 100}%"></div>`), m < 24 && m % u === 0 && f.push(
+      p.push(`<div class="gridline" style="top:${m / 24 * 100}%"></div>`), m < 24 && m % f === 0 && u.push(
         `<div class="gutter-label" style="top:${m / 24 * 100}%">${this._escape(this._hourLabel(m))}</div>`
       );
-    const _ = /* @__PURE__ */ new Date();
-    let g = "", y = "";
-    if (L(this._dayAnchor, _)) {
-      const m = pe(_) / 1440 * 100;
-      g = `<div class="now-line" style="top:${m}%"></div>`, y = `<div class="now-dot" style="top:${m}%"></div>`;
+    const y = /* @__PURE__ */ new Date();
+    let g = "", _ = "";
+    if (L(this._dayAnchor, y)) {
+      const m = pe(y) / 1440 * 100;
+      g = `<div class="now-line" style="top:${m}%"></div>`, _ = `<div class="now-dot" style="top:${m}%"></div>`;
     }
     const w = d.length ? `<div class="day-all">${d.map((m) => {
       const b = this._eventColor(m), C = N(b);
       return `<div class="all-chip" style="background-color:${b};${C ? `color:${C};` : ""}" title="${this._escape(m.summary)}">${this._escape(m.summary)}</div>`;
     }).join("")}</div>` : "", S = l.map((m) => {
-      const b = this._eventColor(m.event), C = N(b), T = m.column * 100 / m.numColumns, O = 100 / m.numColumns, R = m.startMin / 1440 * 100, F = Math.max((m.endMin - m.startMin) / 1440 * 100, 0.2);
+      const b = this._eventColor(m.event), C = N(b), T = m.column * 100 / m.numColumns, z = 100 / m.numColumns, R = m.startMin / 1440 * 100, F = Math.max((m.endMin - m.startMin) / 1440 * 100, 0.2);
       return `
-          <div class="time-event" style="left:${T}%;width:${O}%;top:${R}%;height:${F}%;background-color:${b};${C ? `color:${C};` : ""}" title="${this._escape(m.event.summary)}">
+          <div class="time-event" style="left:${T}%;width:${z}%;top:${R}%;height:${F}%;background-color:${b};${C ? `color:${C};` : ""}" title="${this._escape(m.event.summary)}">
             <div class="time-event-summary">${this._escape(m.event.summary)}</div>
           </div>`;
     }).join("");
@@ -950,7 +950,7 @@ class fe extends HTMLElement {
         </div>
         ${w}
         <div class="day-pane">
-          <div class="day-gutter">${y}${f.join("")}</div>
+          <div class="day-gutter">${_}${u.join("")}</div>
           <div class="day-lane">${p.join("")}${g}${S}</div>
         </div>
       </div>`;
@@ -958,13 +958,13 @@ class fe extends HTMLElement {
   _weekHtml(e, t, o, i, s) {
     const r = this._monthAnchor.getMonth(), c = $(/* @__PURE__ */ new Date()), d = A(/* @__PURE__ */ new Date()), h = [];
     for (const g of s.values())
-      for (const y of g) {
-        if (!X(y)) continue;
-        const w = z(y);
+      for (const _ of g) {
+        if (!X(_)) continue;
+        const w = O(_);
         if (w.startDay.getTime() > o.getTime() || w.lastDay.getTime() < t.getTime()) continue;
         const S = Math.max(0, Math.floor((w.startDay.getTime() - t.getTime()) / H)), m = Math.min(7, Math.ceil((w.lastDay.getTime() - t.getTime() + H) / H));
         h.push({
-          event: y,
+          event: _,
           colStart: S,
           colEnd: m,
           startsBefore: w.startDay.getTime() < t.getTime(),
@@ -973,14 +973,14 @@ class fe extends HTMLElement {
       }
     const l = [], p = /* @__PURE__ */ new Set();
     for (const g of h) {
-      const y = `${g.event.uid}-${i}`;
-      p.has(y) || (p.add(y), l.push(g));
+      const _ = `${g.event.uid}-${i}`;
+      p.has(_) || (p.add(_), l.push(g));
     }
-    const f = me(l), u = /* @__PURE__ */ new Map();
-    return f.forEach((g, y) => {
-      for (const w of g) u.set(w, y);
-    }), `<div class="week"><div class="week-days">${e.map((g, y) => {
-      const w = $(g), S = g.getMonth() === r, b = (s.get(w) ?? []).filter((x) => !X(x)).sort((x, k) => x.all_day !== k.all_day ? x.all_day ? -1 : 1 : Z(x, k)), C = l.filter((x) => x.colStart <= y && y < x.colEnd).sort((x, k) => (u.get(x) ?? 0) - (u.get(k) ?? 0)), T = C.map((x) => this._segmentHtml(x, y)).join(""), O = C.length, R = this._cellH - this._dayNumH - O * this._segRowH - 4 - this._noteH, F = Math.max(1, Math.floor(R / this._chipRowH)), K = b.slice(0, F), B = b.length - K.length;
+    const u = me(l), f = /* @__PURE__ */ new Map();
+    return u.forEach((g, _) => {
+      for (const w of g) f.set(w, _);
+    }), `<div class="week"><div class="week-days">${e.map((g, _) => {
+      const w = $(g), S = g.getMonth() === r, b = (s.get(w) ?? []).filter((x) => !X(x)).sort((x, k) => x.all_day !== k.all_day ? x.all_day ? -1 : 1 : Z(x, k)), C = l.filter((x) => x.colStart <= _ && _ < x.colEnd).sort((x, k) => (f.get(x) ?? 0) - (f.get(k) ?? 0)), T = C.map((x) => this._segmentHtml(x, _)).join(""), z = C.length, R = this._cellH - this._dayNumH - z * this._segRowH - 4 - this._noteH, F = Math.max(1, Math.floor(R / this._chipRowH)), B = b.slice(0, F), G = b.length - B.length;
       return `
           <div class="${[
         "day-cell",
@@ -990,11 +990,11 @@ class fe extends HTMLElement {
       ].filter(Boolean).join(" ")}" data-day="${w}">
             <div class="day-num">${g.getDate()}</div>
             ${T}
-            ${K.map((x) => {
-        const k = this._eventColor(x), G = N(k), te = G ? `color:${G};` : "", oe = x.all_day ? "" : `<span class="chip-time">${ce(x.startDate)}</span>`;
+            ${B.map((x) => {
+        const k = this._eventColor(x), K = N(k), te = K ? `color:${K};` : "", oe = x.all_day ? "" : `<span class="chip-time">${ce(x.startDate)}</span>`;
         return `<div class="chip" style="background-color:${k};${te}" title="${this._escape(x.summary)}">${oe}${this._escape(x.summary)}</div>`;
       }).join("")}
-            ${B > 0 ? `<div class="more">+${B} more</div>` : ""}
+            ${G > 0 ? `<div class="more">+${G} more</div>` : ""}
           </div>`;
     }).join("")}</div></div>`;
   }
