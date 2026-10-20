@@ -269,12 +269,12 @@ class ie extends HTMLElement {
       u.type = "button", u.className = p ? "hide-chip active" : "hide-chip", u.dataset.hex = l;
       const f = document.createElement("span");
       f.className = "hide-chip-dot", f.style.backgroundColor = l;
-      const y = document.createElement("span");
-      y.textContent = h, u.append(f, y), u.addEventListener("click", () => {
-        const g = [...this._config.hideColors ?? []], _ = g.findIndex(
+      const _ = document.createElement("span");
+      _.textContent = h, u.append(f, _), u.addEventListener("click", () => {
+        const g = [...this._config.hideColors ?? []], y = g.findIndex(
           (w) => w.toLowerCase() === l.toLowerCase()
         );
-        _ >= 0 ? g.splice(_, 1) : g.push(l), this._config = { ...this._config, hideColors: g }, E(this, "config-changed", { config: this._config }), this._renderHideColors();
+        y >= 0 ? g.splice(y, 1) : g.push(l), this._config = { ...this._config, hideColors: g }, E(this, "config-changed", { config: this._config }), this._renderHideColors();
       }), c.appendChild(u);
     }), r.appendChild(c), i.forEach((h, l) => {
       M.some((p) => p.hex.toLowerCase() === h.toLowerCase()) || r.appendChild(this._hideColorRow(h, l));
@@ -303,7 +303,7 @@ class ie extends HTMLElement {
   }
 }
 customElements.get("ha-google-calendar-card-editor") || customElements.define("ha-google-calendar-card-editor", ie);
-const V = 30, W = 7, re = 5 * 60 * 1e3, H = 24 * 60 * 60 * 1e3, ae = ["S", "M", "T", "W", "T", "F", "S"];
+const V = 30, W = 7, re = 30 * 60 * 1e3, H = 24 * 60 * 60 * 1e3, ae = ["S", "M", "T", "W", "T", "F", "S"];
 function A(n) {
   return new Date(n.getFullYear(), n.getMonth(), n.getDate());
 }
@@ -700,10 +700,9 @@ class fe extends HTMLElement {
     });
   }
   _maybeScheduleRefresh() {
-    this._sourceKeyNow() !== this._sourceKey ? this._reload() : this._render(), this._refreshTimer && window.clearTimeout(this._refreshTimer), this._refreshTimer = window.setTimeout(
-      () => void this._fetch(this._sourceKey),
-      re
-    );
+    this._sourceKeyNow() !== this._sourceKey ? this._reload() : this._render(), this._refreshTimer && window.clearTimeout(this._refreshTimer), this._refreshTimer = window.setTimeout(() => {
+      this._loading || this._fetch(this._sourceKey);
+    }, re);
   }
   _requestWindow() {
     const e = this._effectiveView();
@@ -732,21 +731,21 @@ class fe extends HTMLElement {
           );
           let p = {}, u;
           try {
-            const y = (await this._hass.callApi("GET", `states/${d}`))?.attributes ?? {};
-            typeof y.event_colors == "object" && y.event_colors !== null && (p = y.event_colors), typeof y.calendar_color == "string" && (u = y.calendar_color);
+            const _ = (await this._hass.callApi("GET", `states/${d}`))?.attributes ?? {};
+            typeof _.event_colors == "object" && _.event_colors !== null && (p = _.event_colors), typeof _.calendar_color == "string" && (u = _.calendar_color);
           } catch {
           }
           (u !== void 0 || Object.keys(p).length > 0) && (this._colorMaps[d] = { colors: p, fallback: u });
           for (const f of l) {
-            const y = P(f.start), g = P(f.end);
-            if (!y || !g) continue;
-            const _ = !!(f.start && f.start.date && !f.start.dateTime), w = {
+            const _ = P(f.start), g = P(f.end);
+            if (!_ || !g) continue;
+            const y = !!(f.start && f.start.date && !f.start.dateTime), w = {
               ...f,
               entityId: d,
-              startDate: y,
+              startDate: _,
               endDate: g,
               calendarName: String(h?.attributes?.friendly_name ?? d),
-              all_day: _
+              all_day: y
             };
             this._shouldHide(w) || c.push(w);
           }
@@ -830,8 +829,8 @@ class fe extends HTMLElement {
   _renderAgenda(e, t) {
     const o = t.maxEvents ?? 100, i = this._events.slice(0, o), s = t.showTime ?? !0, r = t.showCalendarName ?? !1, c = /* @__PURE__ */ new Date(), d = new Date(c.getTime() + H), h = [];
     for (const u of i) {
-      const f = $(u.startDate), y = h[h.length - 1];
-      (!y || y.key !== f) && h.push({
+      const f = $(u.startDate), _ = h[h.length - 1];
+      (!_ || _.key !== f) && h.push({
         key: f,
         label: le(u.startDate, c, d),
         events: []
@@ -859,14 +858,14 @@ class fe extends HTMLElement {
     for (const l of this._events) {
       const { startDay: p, lastDay: u } = O(l);
       for (let f = new Date(p); f <= u; f = D(f, 1)) {
-        const y = $(f), g = c.get(y);
-        g ? g.push(l) : c.set(y, [l]);
+        const _ = $(f), g = c.get(_);
+        g ? g.push(l) : c.set(_, [l]);
       }
     }
     const d = [];
     for (let l = 0; l < i.length; l += 7) {
-      const p = i.slice(l, l + 7), u = p[0], f = p[6], y = U(u);
-      d.push(this._weekHtml(p, u, f, y, c));
+      const p = i.slice(l, l + 7), u = p[0], f = p[6], _ = U(u);
+      d.push(this._weekHtml(p, u, f, _, c));
     }
     const h = this._monthLabel();
     e.innerHTML = `
@@ -920,11 +919,11 @@ class fe extends HTMLElement {
       p.push(`<div class="gridline" style="top:${m / 24 * 100}%"></div>`), m < 24 && m % f === 0 && u.push(
         `<div class="gutter-label" style="top:${m / 24 * 100}%">${this._escape(this._hourLabel(m))}</div>`
       );
-    const y = /* @__PURE__ */ new Date();
-    let g = "", _ = "";
-    if (L(this._dayAnchor, y)) {
-      const m = pe(y) / 1440 * 100;
-      g = `<div class="now-line" style="top:${m}%"></div>`, _ = `<div class="now-dot" style="top:${m}%"></div>`;
+    const _ = /* @__PURE__ */ new Date();
+    let g = "", y = "";
+    if (L(this._dayAnchor, _)) {
+      const m = pe(_) / 1440 * 100;
+      g = `<div class="now-line" style="top:${m}%"></div>`, y = `<div class="now-dot" style="top:${m}%"></div>`;
     }
     const w = d.length ? `<div class="day-all">${d.map((m) => {
       const b = this._eventColor(m), C = N(b);
@@ -950,7 +949,7 @@ class fe extends HTMLElement {
         </div>
         ${w}
         <div class="day-pane">
-          <div class="day-gutter">${_}${u.join("")}</div>
+          <div class="day-gutter">${y}${u.join("")}</div>
           <div class="day-lane">${p.join("")}${g}${S}</div>
         </div>
       </div>`;
@@ -958,13 +957,13 @@ class fe extends HTMLElement {
   _weekHtml(e, t, o, i, s) {
     const r = this._monthAnchor.getMonth(), c = $(/* @__PURE__ */ new Date()), d = A(/* @__PURE__ */ new Date()), h = [];
     for (const g of s.values())
-      for (const _ of g) {
-        if (!X(_)) continue;
-        const w = O(_);
+      for (const y of g) {
+        if (!X(y)) continue;
+        const w = O(y);
         if (w.startDay.getTime() > o.getTime() || w.lastDay.getTime() < t.getTime()) continue;
         const S = Math.max(0, Math.floor((w.startDay.getTime() - t.getTime()) / H)), m = Math.min(7, Math.ceil((w.lastDay.getTime() - t.getTime() + H) / H));
         h.push({
-          event: _,
+          event: y,
           colStart: S,
           colEnd: m,
           startsBefore: w.startDay.getTime() < t.getTime(),
@@ -973,14 +972,14 @@ class fe extends HTMLElement {
       }
     const l = [], p = /* @__PURE__ */ new Set();
     for (const g of h) {
-      const _ = `${g.event.uid}-${i}`;
-      p.has(_) || (p.add(_), l.push(g));
+      const y = `${g.event.uid}-${i}`;
+      p.has(y) || (p.add(y), l.push(g));
     }
     const u = me(l), f = /* @__PURE__ */ new Map();
-    return u.forEach((g, _) => {
-      for (const w of g) f.set(w, _);
-    }), `<div class="week"><div class="week-days">${e.map((g, _) => {
-      const w = $(g), S = g.getMonth() === r, b = (s.get(w) ?? []).filter((x) => !X(x)).sort((x, k) => x.all_day !== k.all_day ? x.all_day ? -1 : 1 : Z(x, k)), C = l.filter((x) => x.colStart <= _ && _ < x.colEnd).sort((x, k) => (f.get(x) ?? 0) - (f.get(k) ?? 0)), T = C.map((x) => this._segmentHtml(x, _)).join(""), z = C.length, R = this._cellH - this._dayNumH - z * this._segRowH - 4 - this._noteH, F = Math.max(1, Math.floor(R / this._chipRowH)), B = b.slice(0, F), G = b.length - B.length;
+    return u.forEach((g, y) => {
+      for (const w of g) f.set(w, y);
+    }), `<div class="week"><div class="week-days">${e.map((g, y) => {
+      const w = $(g), S = g.getMonth() === r, b = (s.get(w) ?? []).filter((x) => !X(x)).sort((x, k) => x.all_day !== k.all_day ? x.all_day ? -1 : 1 : Z(x, k)), C = l.filter((x) => x.colStart <= y && y < x.colEnd).sort((x, k) => (f.get(x) ?? 0) - (f.get(k) ?? 0)), T = C.map((x) => this._segmentHtml(x, y)).join(""), z = C.length, R = this._cellH - this._dayNumH - z * this._segRowH - 4 - this._noteH, F = Math.max(1, Math.floor(R / this._chipRowH)), B = b.slice(0, F), G = b.length - B.length;
       return `
           <div class="${[
         "day-cell",

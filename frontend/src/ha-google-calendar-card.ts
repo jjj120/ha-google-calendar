@@ -7,7 +7,12 @@ import "./ha-google-calendar-card-config";
 
 const DEFAULT_DAYS = 30;
 const DEFAULT_LOOKBACK = 7;
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+// Cadence for the periodic events re-fetch. Colours are kept fresh by the
+// backend pushing event_colors over the websocket, which the card re-reads from
+// hass on every state update; this timer only exists to re-list events (so new
+// ones appear) without hammering the Google API. 30 minutes keeps the request
+// count low while still picking up changes.
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -665,10 +670,12 @@ class HaGoogleCalendarCard extends HTMLElement {
       this._render();
     }
     if (this._refreshTimer) window.clearTimeout(this._refreshTimer);
-    this._refreshTimer = window.setTimeout(
-      () => void this._fetch(this._sourceKey),
-      REFRESH_INTERVAL_MS,
-    );
+    this._refreshTimer = window.setTimeout(() => {
+      // Skip the tick if a fetch for the current window is already in flight,
+      // so a source change and a periodic tick never duplicate requests.
+      if (this._loading) return;
+      void this._fetch(this._sourceKey);
+    }, REFRESH_INTERVAL_MS);
   }
 
   private _requestWindow(): { start: Date; end: Date } {
